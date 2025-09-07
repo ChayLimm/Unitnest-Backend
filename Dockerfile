@@ -19,5 +19,4 @@ RUN chown -R www-data:www-data /var/www
 # Optional: expose the port Laravel dev server will use
 EXPOSE 8000
 
-# Start Laravel dev server automatically
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["entrypoint.sh"]
