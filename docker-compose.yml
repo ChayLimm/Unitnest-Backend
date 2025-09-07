@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: unitnest_backend
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    ports:
+      - "8000:8000"
+    networks:
+      - laravel
+
+  db:
+    image: postgres:15
+    container_name: unitnest_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: unitnest_db
+      POSTGRES_USER: chaylim
+      POSTGRES_PASSWORD: Team1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - laravel
+      
+networks:
+  laravel:
+
+volumes:
+  db_data:
