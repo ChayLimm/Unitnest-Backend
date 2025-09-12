@@ -13,15 +13,19 @@ services:
       - "8000:8000"
     networks:
       - laravel
+    env_file:
+      - .env # This will load variables for the Laravel app too
 
   db:
     image: postgres:15
     container_name: unitnest_db
     restart: unless-stopped
+    env_file: # Load secrets from this file
+      - .env
     environment:
-      POSTGRES_DB: unitnest_db
-      POSTGRES_USER: chaylim
-      POSTGRES_PASSWORD: Team1234
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD} # Now it uses the variable from the .env file
     ports:
       - "5432:5432"
     volumes:
