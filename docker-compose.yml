@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   app:
     build:
@@ -14,27 +12,26 @@ services:
     networks:
       - laravel
     env_file:
-      - .env # This will load variables for the Laravel app too
+      - .env
 
   db:
     image: postgres:15
     container_name: unitnest_db
     restart: unless-stopped
-    env_file: # Load secrets from this file
-      - .env
     environment:
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD} # Now it uses the variable from the .env file
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
       - laravel
-      
+
 networks:
   laravel:
+    driver: bridge
 
 volumes:
   db_data:
