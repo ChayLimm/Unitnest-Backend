@@ -46,7 +46,7 @@ class BotController extends BaseController
 
         if ($type == "group") {
             log::info('Group chat access granted: ' . $chatId);
-            if ($chatId == null || !in_array($userId, self::getAllowedUsers())) {
+            if (!in_array($userId, self::getAllowedUsers())) {
                 $postData = [
                     "chat_id" => $chatId,
                     "text" => "You do not have access to this bot.",
