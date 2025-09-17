@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\bot\BotController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -27,6 +28,8 @@ Route::post('logout', [AuthController::class, 'logout']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('images',[StorageController::class, 'imageUrl'] );
 });
+
+Route::post('/bot', [BotController::class, 'handleAccess']);
 
 
 
