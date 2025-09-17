@@ -9,10 +9,18 @@ use Illuminate\Support\Facades\Log;
 
 class BotController extends BaseController
 {
-    const chaylim = env('CHAYLIM');
-    const narong = env('NARONG');
-    const vanda = env('VANDA');
-    const allowedUsers = [self::chaylim, self::narong, self::vanda];
+    // const chaylim = env('CHAYLIM');
+    // const narong = env('NARONG');
+    // const vanda = env('VANDA');
+    // const allowedUsers = [self::chaylim, self::narong, self::vanda];
+    public static function getAllowedUsers()
+    {
+        return [
+            env('CHAYLIM'),
+            env('NARONG'), 
+            env('VANDA')
+        ];
+    }
     public function handleAccess()
     {
         $update = json_decode(file_get_contents("php://input"), true);
@@ -38,7 +46,7 @@ class BotController extends BaseController
 
         if ($type == "group") {
             log::info('Group chat access granted: ' . $chatId);
-            if ($chatId == null || !in_array($userId, self::allowedUsers)) {
+            if ($chatId == null || !in_array($userId, self::getAllowedUsers())) {
                 $postData = [
                     "chat_id" => $chatId,
                     "text" => "You do not have access to this bot.",
