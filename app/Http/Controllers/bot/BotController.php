@@ -80,7 +80,7 @@ class BotController extends BaseController
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_exec($ch);
             curl_close($ch);
-            return;
+            return; 
         }
 
     }
