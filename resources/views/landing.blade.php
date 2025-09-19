@@ -411,7 +411,6 @@
         <div class="container">
             <nav>
                 <div class="logo">
-                    <i class="fas fa-home"></i>
                     <span>UnitNest</span>
                 </div>
                 <div class="nav-links">
