@@ -39,12 +39,12 @@ class BotController extends BaseController
             $chatId = $update["callback_query"]["message"]["chat"]["id"]; // Chat ID for sending messages
             $type = $update["callback_query"]["message"]["chat"]["type"];
         }
-
+        log::info('User ID: ' . $userId . ', Chat ID: ' . $chatId . ', Type: ' . $type);
         if ($chatId === null || $type === null) {
             return;
         }
 
-        if ($type == "group") {
+        if ($type == "group" || $type == "supergroup") {
             log::info('Group chat access granted: ' . $chatId);
             if (!in_array($userId, self::getAllowedUsers())) {
                 $postData = [
@@ -69,7 +69,7 @@ class BotController extends BaseController
         } else {
             $postData = [
                 "chat_id" => $chatId,
-                "text" => "You do not have access to this bot.",
+                "text" => "You do not have access to this bot. bot is not allow in private chat",
                 "parse_mode" => "HTML"
             ];
 
