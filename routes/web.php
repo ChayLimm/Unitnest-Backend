@@ -14,6 +14,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return "Hello, World! test auto deploy ";
+    return view('landing');
     // return view('welcome');
 });
