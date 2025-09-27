@@ -32,4 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::post('/bot', [BotController::class, 'handleAccess']);
 
 
-
+Route::get('/test', function () {
+    return "Hello, World! test auto deploy ";
+});
