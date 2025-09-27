@@ -33,5 +33,5 @@ Route::post('/bot', [BotController::class, 'handleAccess']);
 
 
 Route::get('/test', function () {
-    return "Hello, World! test auto deploy ";
+    return response()->json(['message' => 'Test endpoint is working!']);
 });
