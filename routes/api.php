@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\AgentController;
 use App\Http\Controllers\bot\BotController;
+use App\Services\OllamaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -35,3 +37,4 @@ Route::post('/bot', [BotController::class, 'handleAccess']);
 Route::get('/test', function () {
     return response()->json(['message' => 'Test endpoint is working!']);
 });
+Route::post('/ollama', [AgentController::class, 'generateResponse']);
