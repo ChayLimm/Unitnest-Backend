@@ -84,7 +84,7 @@ class BotController extends BaseController
         }
 
     }
-    public function handle()
+       public function handle()
     {
         Log::info('Telegram bot webhook triggered');
         $token = env('TELEGRAM_BOT_TOKEN');
@@ -93,32 +93,56 @@ class BotController extends BaseController
 
         $url = "https://api.telegram.org/bot$token/sendMessage";
 
+        // Handle message events
         if (isset($update["message"])) {
             $chatId = $update["message"]["chat"]["id"];
-            $text = $update["message"]["text"];
+            
+            // Check if this is a text message
+            if (isset($update["message"]["text"])) {
+                $text = $update["message"]["text"];
 
-            if ($text === "/start") {
-                $keyboard = [
-                    "inline_keyboard" => [
-                        [
-                            ["text" => "Deploy Dev", "callback_data" => "deploy_dev"]
+                if ($text === "/start") {
+                    $keyboard = [
+                        "inline_keyboard" => [
+                            [
+                                ["text" => "Deploy Dev", "callback_data" => "deploy_dev"]
+                            ]
                         ]
-                    ]
-                ];
+                    ];
 
-                $postData = [
-                    "chat_id" => $chatId,
-                    "text" => "Hello please select an option:",
-                    "reply_markup" => json_encode($keyboard)
-                ];
+                    $postData = [
+                        "chat_id" => $chatId,
+                        "text" => "Hello please select an option:",
+                        "reply_markup" => json_encode($keyboard)
+                    ];
 
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $url);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_exec($ch);
-                curl_close($ch);
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $url);
+                    curl_setopt($ch, CURLOPT_POST, 1);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_exec($ch);
+                    curl_close($ch);
+                }
+            }
+            // Handle new member events
+            else if (isset($update["message"]["new_chat_members"])) {
+                $newMembers = $update["message"]["new_chat_members"];
+                Log::info('New member(s) joined: ' . json_encode($newMembers));
+                
+                // You can add welcome message logic here if needed
+                foreach ($newMembers as $member) {
+                    Log::info("New member: " . $member['first_name'] . " (@{$member['username']}) joined");
+                }
+            }
+            // Handle member left events
+            else if (isset($update["message"]["left_chat_member"])) {
+                $leftMember = $update["message"]["left_chat_member"];
+                Log::info('Member left: ' . json_encode($leftMember));
+            }
+            // Log other message types for debugging
+            else {
+                Log::info('Other message type received: ' . json_encode($update["message"]));
             }
         }
 
@@ -162,4 +186,5 @@ class BotController extends BaseController
             }
         }
     }
+
 }
