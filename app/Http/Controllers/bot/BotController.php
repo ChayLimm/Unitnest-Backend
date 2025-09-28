@@ -18,7 +18,9 @@ class BotController extends BaseController
         return [
             env('CHAYLIM'),
             env('NARONG'), 
-            env('VANDA')
+            env('VANDA'),
+            env('RITH'),
+            env('NAK'),
         ];
     }
     public function handleAccess()
