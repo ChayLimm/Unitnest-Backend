@@ -108,7 +108,7 @@ class BotController extends BaseController
 
                 $postData = [
                     "chat_id" => $chatId,
-                    "text" => "Hello kon khmer:",
+                    "text" => "Hello please select an option:",
                     "reply_markup" => json_encode($keyboard)
                 ];
 
@@ -132,7 +132,7 @@ class BotController extends BaseController
             if ($data === "deploy_dev") {
                 $postData = [
                     "chat_id" => $chatId,
-                    "text" => "🚀 Deploying development server..."
+                    "text" => "Deploying development server..."
                 ];
 
                 $ch = curl_init();
