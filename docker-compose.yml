@@ -23,7 +23,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5433:5432"
+      - "5434:5432"  # Changed to 5434
     volumes:
       - lomnov_staging_db_data:/var/lib/postgresql/data
     networks:
