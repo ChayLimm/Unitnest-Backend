@@ -15,4 +15,4 @@ fi
 chown -R www-data:www-data storage bootstrap/cache
 
 # Start Laravel dev server
-php artisan serve --host=0.0.0.0 --port=8000
+php artisan serve --host=0.0.0.0 --port=8001

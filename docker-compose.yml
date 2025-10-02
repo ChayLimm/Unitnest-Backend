@@ -3,35 +3,35 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: unitnest_backend
+    container_name: lomnow_staging_backend
     restart: unless-stopped
     volumes:
       - .:/var/www
     ports:
-      - "8000:8000"
+      - "8001:8000"
     networks:
-      - laravel
+      - lomnow_staging_network
     env_file:
       - .env
 
   db:
     image: postgres:15
-    container_name: unitnest_db
+    container_name: lomnow_staging_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - lomnow_staging_db_data:/var/lib/postgresql/data
     networks:
-      - laravel
+      - lomnow_staging_network
 
 networks:
-  laravel:
+  lomnow_staging_network:
     driver: bridge
 
 volumes:
-  db_data:
+  lomnow_staging_db_data:
