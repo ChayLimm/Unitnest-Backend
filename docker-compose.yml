@@ -3,20 +3,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: lomnow_staging_backend
+    container_name: lomnov_staging_backend
     restart: unless-stopped
     volumes:
       - .:/var/www
     ports:
       - "8001:8000"
     networks:
-      - lomnow_staging_network
+      - lomnov_staging_network
     env_file:
       - .env
 
   db:
     image: postgres:15
-    container_name: lomnow_staging_db
+    container_name: lomnov_staging_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE}
@@ -25,13 +25,13 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - lomnow_staging_db_data:/var/lib/postgresql/data
+      - lomnov_staging_db_data:/var/lib/postgresql/data
     networks:
-      - lomnow_staging_network
+      - lomnov_staging_network
 
 networks:
-  lomnow_staging_network:
+  lomnov_staging_network:
     driver: bridge
 
 volumes:
-  lomnow_staging_db_data:
+  lomnov_staging_db_data:
