@@ -28,7 +28,7 @@ Route::post('register', [AuthController::class, 'register']);
 Route::post('logout', [AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('images',[StorageController::class, 'imageUrl'] );
+    Route::get('images/{id}',[StorageController::class, 'imageUrl'] );
 });
 
 Route::post('/bot', [BotController::class, 'handleAccess']);
