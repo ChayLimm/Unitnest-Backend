@@ -7,9 +7,10 @@ use Illuminate\Support\Facades\Http;
 
 class StorageController extends Controller
 {
-    public function imageUrl(Request $request)
+    public function imageUrl(Request $request, $id)
     {
-        $name = $request->input('name');
+        // $name = $request->input('name');
+        $name = $id;
         $url = env('IMAGE_URL') . '/' . $name;
 
         $response = Http::get($url);
