@@ -29,8 +29,15 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # Install Composer
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 
+# this basically copy composer.json and install requirements
 # Set working directory
 WORKDIR /var/www
+
+# Copy Laravel project files (so composer.json is inside the container)
+COPY . .
+
+# Install Laravel dependencies (this will now read composer.json)
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 # Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
