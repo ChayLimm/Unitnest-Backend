@@ -1,7 +1,23 @@
 <?php
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\BakongAccountController;
 use App\Http\Controllers\bot\BotController;
+use App\Http\Controllers\BuildingController;
+use App\Http\Controllers\ConsumptionController;
+use App\Http\Controllers\ContractController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PaymentItemController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RoomController;
+use App\Http\Controllers\RoomTypeController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\UserController;
+use App\Models\PaymentItem;
+use App\Models\Service;
 use App\Services\OllamaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -38,3 +54,33 @@ Route::get('/test', function () {
     return response()->json(['message' => 'Test endpoint is working!']);
 });
 Route::post('/ollama', [AgentController::class, 'generateResponse']);
+
+///ai
+Route::apiResource('users', UserController::class);
+Route::apiResource('bakong-accounts', BakongAccountController::class);
+Route::apiResource('buildings',  BuildingController::class);
+Route::apiResource('settings', SettingController::class);
+Route::apiResource('roles', RoleController::class);
+Route::apiResource('room-types', RoomTypeController::class);
+Route::apiResource('rooms', RoomController::class);
+Route::apiResource('contracts', ContractController::class);
+Route::apiResource('services', ServiceController::class);
+Route::apiResource('consumptions', ConsumptionController::class);
+Route::apiResource('transactions', TransactionController::class);
+Route::apiResource('payments', PaymentController::class);
+Route::apiResource('payment-items', PaymentController::class);
+Route::apiResource('notifications', NotificationController::class);
+
+// Custom routes
+Route::get('buildings/landlord/{landlordId}', [BuildingController::class, 'getByLandlord']);
+Route::get('settings/user/{userId}', [SettingController::class, 'getUserSettings']);
+Route::get('rooms/building/{buildingId}', [RoomController::class, 'getByBuilding']);
+Route::patch('rooms/{room}/status', [RoomController::class, 'updateStatus']);
+Route::get('contracts/active', [ContractController::class, 'getActiveContracts']);
+Route::get('contracts/tenant/{tenantId}', [ContractController::class, 'getTenantContracts']);
+Route::get('consumptions/room/{roomId}', [ConsumptionController::class, 'getRoomConsumptions']);
+Route::get('payments/tenant/{tenantId}', [PaymentController::class, 'getTenantPayments']);
+Route::patch('payments/{payment}/status', [PaymentController::class, 'updateStatus']);
+Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, 'getPaymentItems']);
+Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
