@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Backpack\CRUD\app\Models\Traits\CrudTrait;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, CrudTrait;
 
     protected $fillable = [
         'name',
@@ -63,4 +64,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(Payment::class, 'landlord_id');
     }
+       
+    public function scopeByTelegramId($query, $telegramId)
+    {
+        return $query->where('telegram_id', $telegramId);
+    }
+
+    public function scopeByIdentifyId($query, $identifyId)
+    {
+        return $query->where('identify_id', $identifyId);
+    }
+
+    public function scopeByPhone($query, $phonenumber)
+    {
+        return $query->where('phonenumber', $phonenumber);
+    }
 }
+
+
