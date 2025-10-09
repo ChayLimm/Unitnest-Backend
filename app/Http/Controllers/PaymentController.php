@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Payment;
+use Illuminate\Http\Request;
+
+class PaymentController extends Controller
+{
+    public function index()
+    {
+        $payments = Payment::with([
+            'tenant', 
+            'landlord', 
+            'transaction', 
+            'room.building',
+            'paymentItems.service'
+        ])->get();
+        
+        return response()->json($payments);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'tenant_id' => 'required|exists:users,id',
+            'landlord_id' => 'required|exists:users,id',
+            'transaction_id' => 'required|exists:transactions,id',
+            'room_id' => 'required|exists:rooms,id',
+            'status' => 'nullable|string|max:50',
+            'qr_code' => 'nullable|string|max:255',
+            'md5' => 'nullable|string|max:255',
+        ]);
+
+        $payment = Payment::create($validated);
+
+        return response()->json($payment, 201);
+    }
+
+    public function show(Payment $payment)
+    {
+        $payment->load([
+            'tenant', 
+            'landlord', 
+            'transaction', 
+            'room.building',
+            'paymentItems.service',
+            'notifications'
+        ]);
+        
+        return response()->json($payment);
+    }
+
+    public function update(Request $request, Payment $payment)
+    {
+        $validated = $request->validate([
+            'tenant_id' => 'sometimes|exists:users,id',
+            'landlord_id' => 'sometimes|exists:users,id',
+            'transaction_id' => 'sometimes|exists:transactions,id',
+            'room_id' => 'sometimes|exists:rooms,id',
+            'status' => 'nullable|string|max:50',
+            'qr_code' => 'nullable|string|max:255',
+            'md5' => 'nullable|string|max:255',
+        ]);
+
+        $payment->update($validated);
+
+        return response()->json($payment);
+    }
+
+    public function destroy(Payment $payment)
+    {
+        $payment->delete();
+        return response()->json(null, 204);
+    }
+
+    public function getTenantPayments($tenantId)
+    {
+        $payments = Payment::where('tenant_id', $tenantId)
+            ->with(['room.building', 'paymentItems.service'])
+            ->get();
+        
+        return response()->json($payments);
+    }
+
+    public function updateStatus(Request $request, Payment $payment)
+    {
+        $validated = $request->validate([
+            'status' => 'required|string|max:50',
+        ]);
+
+        $payment->update($validated);
+
+        return response()->json($payment);
+    }
+}
