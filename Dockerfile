@@ -49,7 +49,7 @@ RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-s
 COPY . .
 
 # Run composer scripts after copying all files
-RUN composer run-script post-install-cmd
+# RUN composer run-script post-install-cmd
 
 # Fix permissions (important for Laravel)
 RUN chown -R www-data:www-data /var/www \
