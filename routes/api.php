@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
+use App\Http\Controllers\BakongController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +30,9 @@ Route::post('logout', [AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('images',[StorageController::class, 'imageUrl'] );
+    Route::get('/v1/bakong', [BakongController::class, 'index']);
+    Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR']);
+    Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
 });
 
 Route::post('/bot', [BotController::class, 'handleAccess']);
