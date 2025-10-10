@@ -19,6 +19,7 @@ class Payment extends Model
         'room_id',
         'status',
         'qr_code',
+        'deep_link',
         'md5',
     ];
 

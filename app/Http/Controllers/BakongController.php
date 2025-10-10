@@ -14,14 +14,15 @@ class BakongController extends Controller
 
     public function generateKHQR(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
+            'tenant_id' => 'nullable|integer',
             'amount' => 'required|numeric|min:0.01',
+            'landlord_id' => 'nullable|integer',
+            'room_id' => 'nullable|integer',
         ]);
 
-        $amount = $request->input('amount');
-
         $bakongService = new BakongService();
-        $khqrData = $bakongService->generateKHQR($amount);
+        $khqrData = $bakongService->generateKHQR($validated['amount'], $validated);
 
         return response()->json($khqrData);
     } 

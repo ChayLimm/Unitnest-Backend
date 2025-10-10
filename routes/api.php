@@ -46,9 +46,6 @@ Route::post('logout', [AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('images/{id}',[StorageController::class, 'imageUrl'] );
-    Route::get('/v1/bakong', [BakongController::class, 'index']);
-    Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR']);
-    Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
 });
 
 Route::post('/bot', [BotController::class, 'handleAccess']);
@@ -58,6 +55,11 @@ Route::get('/test', function () {
     return response()->json(['message' => 'Test endpoint is working!']);
 });
 Route::post('/ollama', [AgentController::class, 'generateResponse']);
+
+// Bakong routes
+Route::get('/v1/bakong', [BakongController::class, 'index']);
+Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR']);
+Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
 
 ///ai
 Route::apiResource('users', UserController::class);
