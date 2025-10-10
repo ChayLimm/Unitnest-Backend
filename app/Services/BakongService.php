@@ -182,7 +182,10 @@ use KHQR\Models\SourceInfo;
 use KHQR\Models\IndividualInfo;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
-
+use App\Models\Payment;
+use App\Models\Transaction;
+use Illuminate\Support\Facades\DB;
+use App\Jobs\CheckTransactionStatusJob;
 
 class BakongService
 {
@@ -198,8 +201,11 @@ class BakongService
         $this->bakong_mobile_number = config('bakong.mobile_number');
     }
 
-    public function generateKHQR(float $amount): array
+    public function generateKHQR(float $amount, array $meta): array
     {
+        DB::beginTransaction();
+
+
         try{
             $individualInfo = new IndividualInfo(
                 bakongAccountID: $this->bakong_account,
@@ -210,8 +216,6 @@ class BakongService
             );
 
             $response = BakongKHQR::generateIndividual($individualInfo);
-
-
             $qr = $response->data['qr'] ?? null;
             $md5 = $response->data['md5'] ?? null;
 
@@ -236,18 +240,44 @@ class BakongService
                 ],
             ];
             // Request for Dev only, update when Production
-            $response = Http::withoutVerifying()->withHeaders([
+            $response1 = Http::withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
             ])
             ->post($url, $payload);
 
-            return [
-                'qr' => $qr,
+            $data = $response1->json()['data'];
+
+            $deepLink = $data['shortLink'] ?? null;
+
+            $transaction = Transaction::create([
+                'payload' => null,
+            ]);
+
+            $payment = Payment::create([
+                'tenant_id' => $meta['tenant_id'] ?? null,
+                'landlord_id' => $meta['landlord_id'] ?? null,
+                'room_id' => $meta['room_id'] ?? null,
+                'status' => 'pending',
+                'qr_code' => $qr,
                 'md5' => $md5,
-                'deep_link' => $response->json()['data']['shortLink'] ?? null
+                'deep_link' => $deepLink,
+                'transaction_id' => $transaction->id,
+            ]);
+
+            DB::commit();
+
+            // Dispatch queued job to check transaction asynchronously
+            CheckTransactionStatusJob::dispatch($payment->md5);
+
+            return [
+                'success' => true,
+                "data" => [
+                    "payment" => $payment,
+                ]
             ];
 
         }catch(\Exception $e){
+            DB::rollBack();
             Log::error("KHQR generation failed: " . $e->getMessage());
             return [
                 'error' => true,
@@ -279,9 +309,34 @@ class BakongService
 
                 Log::debug("Bakong response ({$response->status()}): " . json_encode($data));
 
-                if (($data['status'] ?? null) === 'success') {
+                if (($data['responseCode'] ?? null) === 0) {
                     Log::info("✅ Transaction {$md5} completed successfully.");
-                    return $data;
+                    DB::transaction(function () use ($data, $md5) {
+                    // find the payment by md5 (if applicable)
+                    $payment = Payment::where('md5', $md5)->first();
+
+                    if ($payment && $payment->transaction_id) {
+                        // find transaction record
+                        $transaction = Transaction::find($payment->transaction_id);
+
+                        // update transaction status
+                        if ($transaction) {
+                            $transaction->update([
+                                'payload' => $data['data'] ?? null,
+                            ]);
+                        }
+
+                        // update payment status
+                        $payment->update([
+                            'status' => 'completed',
+                        ]);
+                    }
+                });
+
+                    return [
+                        'status' => 'completed',
+                        'data' => $data['data'] ?? null,
+                    ];
                 }
 
             } catch (\Throwable $e) {
@@ -293,7 +348,10 @@ class BakongService
         }
 
         Log::warning("⚠️ Transaction {$md5} timed out after {$timeout} seconds.");
-        return ['status' => 'timeout'];
+        return [
+            'status' => 'timeout',
+            'data' => null,
+        ];
     }
 
 }
