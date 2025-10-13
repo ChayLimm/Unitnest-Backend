@@ -42,6 +42,11 @@ class LogController extends Controller
             }
         }
         
+        // Sort log files by modification date (newest first)
+        usort($logFiles, function($a, $b) {
+            return strtotime($b['modified']) - strtotime($a['modified']);
+        });
+        
         return $logFiles;
     }
 
@@ -69,7 +74,8 @@ class LogController extends Controller
                                     'file' => $file->getFilename(),
                                     'line' => $line,
                                     'timestamp' => $this->extractTimestamp($line),
-                                    'level' => $this->extractLogLevel($line)
+                                    'level' => $this->extractLogLevel($line),
+                                    'sort_key' => $this->extractSortableTimestamp($line)
                                 ];
                             }
                         }
@@ -78,9 +84,9 @@ class LogController extends Controller
             }
         }
         
-        // Sort logs by timestamp
+        // Sort logs by timestamp in descending order (newest first)
         usort($todayLogs, function($a, $b) {
-            return strcmp($a['timestamp'], $b['timestamp']);
+            return strcmp($b['sort_key'], $a['sort_key']);
         });
         
         return $todayLogs;
@@ -92,6 +98,14 @@ class LogController extends Controller
             return $matches[1];
         }
         return '';
+    }
+
+    private function extractSortableTimestamp($line)
+    {
+        if (preg_match('/\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/', $line, $matches)) {
+            return $matches[1];
+        }
+        return '0000-00-00 00:00:00';
     }
 
     private function extractLogLevel($line)
