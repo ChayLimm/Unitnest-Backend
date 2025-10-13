@@ -24,6 +24,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
 use App\Http\Controllers\BakongController;
+use App\Http\Controllers\LogController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -90,3 +92,9 @@ Route::patch('payments/{payment}/status', [PaymentController::class, 'updateStat
 Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, 'getPaymentItems']);
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
+
+
+
+
+Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
+Route::get('/logs/{date?}', [LogController::class, 'show'])->name('logs.show');
