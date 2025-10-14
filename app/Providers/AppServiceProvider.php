@@ -29,8 +29,11 @@ class AppServiceProvider extends ServiceProvider
     {
         if (env('APP_ENV') === 'production') {
             $this->app['request']->server->set('HTTPS', true);
+            Log::info(message: 'force change url to HTTPS');
+
+        }else{
+            Log::info("did not force change url to HTTPS");
         }
-        Log::info('Registering ScholarshipObserver');
 
         View::addNamespace('backpack', resource_path('views/vendor/backpack/crud'));
 
