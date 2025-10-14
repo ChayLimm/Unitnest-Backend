@@ -5,6 +5,13 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;   
 
+
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Log;
+use App\Services\GoogleAnalyticsService;
+use Spatie\Permission\Models\Permission;
+
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -19,9 +26,17 @@ class AppServiceProvider extends ServiceProvider
      * Bootstrap any application services.
      */
     public function boot()
-{
-    if (config('app.env') === 'production') {
-        URL::forceScheme('https');
+    {
+        if (env('APP_ENV') === 'production') {
+            $this->app['request']->server->set('HTTPS', true);
+        }
+        Log::info('Registering ScholarshipObserver');
+
+        View::addNamespace('backpack', resource_path('views/vendor/backpack/crud'));
+
+        // if (Schema::hasTable('permissions')) {
+        //     $this->ensurePermissionsExist();
+        // }
+
     }
-}
 }
