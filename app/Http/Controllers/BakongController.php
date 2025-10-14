@@ -14,6 +14,7 @@ class BakongController extends Controller
 
     public function generateKHQR(Request $request)
     {
+        // Production the constraint need to be required
         $validated = $request->validate([
             'tenant_id' => 'nullable|integer',
             'amount' => 'required|numeric|min:0.01',
