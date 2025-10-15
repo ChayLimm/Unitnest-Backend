@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\ReportController;
 
 
 /*
@@ -92,3 +93,6 @@ Route::get('notifications/unread', [NotificationController::class, 'getUnreadNot
 
 Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
 Route::get('/logs/{date?}', [LogController::class, 'show'])->name('logs.show');
+
+// Report API
+Route::get('/reports/monthly', [ReportController::class, 'monthlyReport']);
