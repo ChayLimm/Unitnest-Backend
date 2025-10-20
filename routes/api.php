@@ -95,4 +95,6 @@ Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
 Route::get('/logs/{date?}', [LogController::class, 'show'])->name('logs.show');
 
 // Report API
-Route::get('/reports/monthly', [ReportController::class, 'monthlyReport']);
+Route::get('/reports', [ReportController::class, 'index']);
+Route::get('/reports/unpaid-rooms', [ReportController::class, 'unpaidRooms']);
+Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
