@@ -7,26 +7,18 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
-use Laravel\Sanctum\HasApiTokens;
+use Monolog\Handler\TelegramBotHandler;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, CrudTrait;
+    use HasFactory, Notifiable, SoftDeletes, CrudTrait;
 
     protected $fillable = [
         'name',
         'email',
-        'email_verified_at',
         'password',
-        'remember_token',
+        'phone',
         'role_id',
-        'telegram_id',
-        'username',
-        'phonenumber',
-        'identify_id',
-        'profile_image_url',
-        'identify_image_url',
-        'deleted_at',
     ];
 
     protected $hidden = [
@@ -88,6 +80,12 @@ class User extends Authenticatable
     {
         return $query->where('phonenumber', $phonenumber);
     }
+
+    public function telegrambots()
+    {
+        return $this->hasOne(telegrambot::class);
+    }
+
 }
 
 
