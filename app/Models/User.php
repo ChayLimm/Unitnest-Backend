@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
+use Monolog\Handler\TelegramBotHandler;
 
 class User extends Authenticatable
 {
@@ -79,6 +80,12 @@ class User extends Authenticatable
     {
         return $query->where('phonenumber', $phonenumber);
     }
+
+    public function telegrambots()
+    {
+        return $this->hasOne(telegrambot::class);
+    }
+
 }
 
 

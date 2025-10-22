@@ -18,11 +18,13 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use App\Models\PaymentItem;
 use App\Models\Service;
+use App\Models\Telegrambot;
 use App\Services\OllamaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
+use App\Http\Controllers\TelegramBotController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,8 +72,8 @@ Route::apiResource('transactions', TransactionController::class);
 Route::apiResource('payments', PaymentController::class);
 Route::apiResource('payment-items', PaymentController::class);
 Route::apiResource('notifications', NotificationController::class);
-
-// Custom routes
+Route::apiResource('telegrambots', TelegramBotController::class);
+// Custom route
 Route::get('buildings/landlord/{landlordId}', [BuildingController::class, 'getByLandlord']);
 Route::get('settings/user/{userId}', [SettingController::class, 'getUserSettings']);
 Route::get('rooms/building/{buildingId}', [RoomController::class, 'getByBuilding']);
