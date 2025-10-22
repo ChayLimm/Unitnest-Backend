@@ -15,4 +15,3 @@
 <x-backpack::menu-item title="Payments" icon="la la-question" :link="backpack_url('payment')" />
 <x-backpack::menu-item title="Payment items" icon="la la-question" :link="backpack_url('payment-item')" />
 <x-backpack::menu-item title="Notifications" icon="la la-question" :link="backpack_url('notification')" />
-<x-backpack::menu-item title="Telegrambots" icon="la la-question" :link="backpack_url('telegrambot')" />
