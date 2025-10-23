@@ -8,10 +8,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Monolog\Handler\TelegramBotHandler;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes, CrudTrait;
+    use HasFactory, Notifiable, SoftDeletes, CrudTrait, HasApiTokens; 
 
     protected $fillable = [
         'name',
