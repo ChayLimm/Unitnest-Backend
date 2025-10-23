@@ -30,6 +30,7 @@ class PaymentController extends Controller
             'status' => 'nullable|string|max:50',
             'qr_code' => 'nullable|string|max:255',
             'md5' => 'nullable|string|max:255',
+            'deep_link' => 'nullable|string|max:255',
         ]);
 
         $payment = Payment::create($validated);
@@ -61,6 +62,7 @@ class PaymentController extends Controller
             'status' => 'nullable|string|max:50',
             'qr_code' => 'nullable|string|max:255',
             'md5' => 'nullable|string|max:255',
+            'deep_link' => 'nullable|string|max:255',
         ]);
 
         $payment->update($validated);

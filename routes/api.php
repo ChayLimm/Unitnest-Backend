@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
 use App\Http\Controllers\TelegramBotController;
+use App\Http\Controllers\BakongController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +48,10 @@ Route::post('logout', [AuthController::class, 'logout']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('images/{id}',[StorageController::class, 'imageUrl'] );
+    Route::get('images',[StorageController::class, 'imageUrl'] );
+    Route::get('/v1/bakong', [BakongController::class, 'index']);
+    Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR']);
+    Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
 });
 
 Route::post('/bot', [BotController::class, 'handleAccess']);
@@ -56,6 +61,11 @@ Route::get('/test', function () {
     return response()->json(['message' => 'Test endpoint is working!']);
 });
 Route::post('/ollama', [AgentController::class, 'generateResponse']);
+
+// Bakong routes
+Route::get('/v1/bakong', [BakongController::class, 'index']);
+Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR']);
+Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
 
 ///ai
 Route::apiResource('users', UserController::class);
@@ -86,3 +96,4 @@ Route::patch('payments/{payment}/status', [PaymentController::class, 'updateStat
 Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, 'getPaymentItems']);
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
+
