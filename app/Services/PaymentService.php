@@ -29,19 +29,19 @@ class PaymentService{
     
     public function processPayment(?Consumption ...$consumptions){
         if(!$consumptions){
-           //no soncumpiton
+            //no soncumpiton
         }else{
-        //define all needed variable
-        $status = PaymentStatus::Pending;
-        $total_consumption_price = 0;
-        $service_fee = 0;
+            //define all needed variable
+            $status = PaymentStatus::Pending;
+            $total_consumption_price = 0;
+            $service_fee = 0;
 
-        // initialize the payment record
-        $payment = Payment::create([
-            'landlord_id' => $this->landlord_id,
-            'tenant_id' => $this->tenant_id,
-            'room_id' => $this->room_id,
-            'status' => $status,
+            // initialize the payment record
+            $payment = Payment::create([
+                'landlord_id' => $this->landlord_id,
+                'tenant_id' => $this->tenant_id,
+                'room_id' => $this->room_id,
+                'status' => $status,
         ]);
 
         //find total price
@@ -49,7 +49,7 @@ class PaymentService{
         
         //find total consumption usage price
         foreach($consumptions as $consumption){
-            $consumption_usage = $this->consumptionService->getConsumptionUsage($consumption);
+            $consumption_usage = $this->consumptionService->getConsumptionUsage($consumption)?? $consumption->end_reading;
             $payment_item = PaymentItem::create([
                 'payment_id' => $payment->id,
                 'service_id' => $consumption->service_id,
@@ -64,22 +64,30 @@ class PaymentService{
             $payment_item = PaymentItem::create([
                 'payment_id' => $payment->id,
                 'service_id' => $service->id,
-                'unit_price' => $service->monthly_fee,
+                'unit_price' => $service->unit_price,
                 'quantity' => 1,
-                'subtotal' => $service->monthly_fee,
+                'subtotal' => $service->unit_price,
             ]);
             $service_fee += $service->monthly_fee;
         }
+
+        //store room price
+        $payment_item = PaymentItem::create([
+            'payment_id' => $payment->id,
+            'service_id' => $service->id,
+            'unit_price' => $service->unit_price,
+            'quantity' => 1,
+            'subtotal' => $service->unit_price,
+        ]);
+
+        $total = $this->getTotalPayment($payment->id); //need room price
         //get qr, md5 and deep link
 
-        BakongService::generateKHQRPayment([
-            // 'amount' => $total_consumption_price + $service_fee,
-            // 'landlord_id' => $this->landlord_id,
-            // 'tenant_id' => $this->tenant_id,
-            // 'room_id' => $this->room_id,
-        ]);
-        Transaction::create([
-            'payload' => null,
+        $response =  $this->bakongService->generateKHQR($total);
+        $transaction =  $response['transaction'];
+
+        $payment->update([
+            'transaction_id' => $transaction->id
         ]);
         }
       
@@ -90,11 +98,13 @@ class PaymentService{
         //else compute it 
         $total = 0;
         $payment = Payment::find($payment_id);
+        $room = Room::find($payment->room->id);
         $payment_items = $payment->paymentItems;
         foreach($payment_items as $item){
             //sum all subtotal
             $total += $item->subtotal;
         }
+
         return $total;
     }
 }

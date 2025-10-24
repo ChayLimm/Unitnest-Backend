@@ -28,20 +28,20 @@ class BakongController extends Controller
         return response()->json($khqrData);
     } 
 
-    public function checkTransactionStatus(Request $request)
-    {
-        $validated = $request->validate([
-            'tenant_id' => 'nullable|integer',
-            'amount' => 'required|numeric|min:0.01',
-            'landlord_id' => 'nullable|integer',
-            'room_id' => 'nullable|integer',
-        ]);
+    // public function checkTransactionStatus(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'tenant_id' => 'nullable|integer',
+    //         'amount' => 'required|numeric|min:0.01',
+    //         'landlord_id' => 'nullable|integer',
+    //         'room_id' => 'nullable|integer',
+    //     ]);
 
-        $bakongService = new BakongService();
-        $khqrData = $bakongService->generateKHQR($validated['amount'], $validated);
+    //     $bakongService = new BakongService();
+    //     $khqrData = $bakongService->generateKHQR($validated['amount'], $validated);
 
-        return response()->json($khqrData);
-    } 
+    //     return response()->json($khqrData);
+    // } 
 
     public function checkTransactionStatus(Request $request)
     {

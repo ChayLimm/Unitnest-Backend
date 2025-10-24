@@ -36,17 +36,17 @@ class Room extends Model
 
     public function contracts()
     {
-        return $this->hasMany(Contract::class);
+        return $this->hasMany(Contract::class,'room_id');
     }
 
     public function consumptions()
     {
-        return $this->hasMany(Consumption::class);
+        return $this->hasMany(Consumption::class,'consumpution');
     }
 
     public function payments()
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Payment::class,'room_id');
     }
 
     public function currentContract()

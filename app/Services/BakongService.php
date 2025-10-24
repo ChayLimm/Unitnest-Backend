@@ -27,7 +27,7 @@ class BakongService
         $this->bakong_mobile_number = config('bakong.mobile_number');
     }
 
-    public function generateKHQR(float $amount, array $meta): array
+    public function generateKHQR(float $amount): array
     {
         DB::beginTransaction();
 
@@ -87,6 +87,7 @@ class BakongService
             return [
                 'success' => true,
                 "data" => [
+                    "transaction" => $transaction,
                     "qr" => $qr,
                     "md5" => $md5,
                     "deepLink" => $deepLink,
