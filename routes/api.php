@@ -24,8 +24,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
-use App\Http\Controllers\TelegramBotController;
 use App\Http\Controllers\BakongController;
+use App\Http\Controllers\LogController;
+
+use App\Http\Controllers\TelegramBotController;
 
 /*
 |--------------------------------------------------------------------------

@@ -30,6 +30,21 @@ class BakongController extends Controller
 
     public function checkTransactionStatus(Request $request)
     {
+        $validated = $request->validate([
+            'tenant_id' => 'nullable|integer',
+            'amount' => 'required|numeric|min:0.01',
+            'landlord_id' => 'nullable|integer',
+            'room_id' => 'nullable|integer',
+        ]);
+
+        $bakongService = new BakongService();
+        $khqrData = $bakongService->generateKHQR($validated['amount'], $validated);
+
+        return response()->json($khqrData);
+    } 
+
+    public function checkTransactionStatus(Request $request)
+    {
         $request->validate([
             'md5' => 'required|string',
             'timeout' => 'sometimes|integer|min:1|max:60'
