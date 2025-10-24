@@ -22,6 +22,9 @@ class Payment extends Model
         'deep_link',
         'md5',
     ];
+    protected $casts = [
+        'status' => PaymentStatus::class,
+    ];
 
     // Relationships
     public function tenant()

@@ -23,11 +23,11 @@ class PaymentItem extends Model
     // Relationships
     public function payment()
     {
-        return $this->belongsTo(Payment::class);
+        return $this->belongsTo(Payment::class,'payment_id');
     }
 
     public function service()
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(Service::class,'service_id');
     }
 }

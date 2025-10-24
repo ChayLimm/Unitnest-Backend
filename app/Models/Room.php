@@ -6,6 +6,7 @@ use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use KHQR\Models\Timestamp;
 
 class Room extends Model
 {
@@ -30,7 +31,7 @@ class Room extends Model
 
     public function roomType()
     {
-        return $this->belongsTo(RoomType::class);
+        return $this->hasOne(RoomType::class,'room_type_id');
     }
 
     public function contracts()
