@@ -28,7 +28,6 @@ use App\Http\Controllers\BakongController;
 use App\Http\Controllers\LogController;
 
 use App\Http\Controllers\TelegramBotController;
-use App\Http\Controllers\BakongController;
 
 /*
 |--------------------------------------------------------------------------
