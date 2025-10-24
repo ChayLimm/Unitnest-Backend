@@ -6,11 +6,11 @@ use KHQR\BakongKHQR;
 use KHQR\Helpers\KHQRData;
 use KHQR\Models\SourceInfo;
 use KHQR\Models\IndividualInfo;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Models\Payment;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\DB;
 use App\Jobs\CheckTransactionStatusJob;
 
 class BakongService
@@ -79,26 +79,17 @@ class BakongService
                 'payload' => null,
             ]);
 
-            $payment = Payment::create([
-                'tenant_id' => $meta['tenant_id'] ?? null,
-                'landlord_id' => $meta['landlord_id'] ?? null,
-                'room_id' => $meta['room_id'] ?? null,
-                'status' => 'pending',
-                'qr_code' => $qr,
-                'md5' => $md5,
-                'deep_link' => $deepLink,
-                'transaction_id' => $transaction->id,
-            ]);
-
             DB::commit();
 
             // Dispatch queued job to check transaction asynchronously
-            CheckTransactionStatusJob::dispatch($payment->md5);
+            CheckTransactionStatusJob::dispatch($md5);
 
             return [
                 'success' => true,
                 "data" => [
-                    "payment" => $payment,
+                    "qr" => $qr,
+                    "md5" => $md5,
+                    "deepLink" => $deepLink,
                 ]
             ];
 
