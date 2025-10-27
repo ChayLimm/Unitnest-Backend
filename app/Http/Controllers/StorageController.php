@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class StorageController extends Controller
 {
@@ -40,6 +41,8 @@ class StorageController extends Controller
         $path = $disk->putFileAs('', $file, $filename);
 
         $url = $disk->url($path);
+
+        Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
 
         return response()->json([
             'message' => 'Uploaded successfully',
