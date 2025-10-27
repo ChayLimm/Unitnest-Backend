@@ -53,4 +53,9 @@ class Room extends Model
     {
         return $this->hasOne(Contract::class)->where('status', 'active')->latest();
     }
+
+    public function services()
+    {
+        return $this->belongsToMany(Service::class)->using(RoomService::class)->withPivot(['room_id']);
+    }
 }

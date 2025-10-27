@@ -48,17 +48,22 @@ class PaymentService{
         $room = Room::find($this->room_id);
         
         //find total consumption usage price
-        foreach($consumptions as $consumption){
-            $consumption_usage = $this->consumptionService->getConsumptionUsage($consumption)?? $consumption->end_reading;
-            $payment_item = PaymentItem::create([
-                'payment_id' => $payment->id,
-                'service_id' => $consumption->service_id,
-                'unit_price' => $consumption->service()->price_per_unit,
-                'quantity' => $consumption_usage,
-                'subtotal' => $consumption_usage * $consumption->service()->price_per_unit,
-            ]);
-            $total_consumption_price += $consumption_usage * $consumption->service()->price_per_unit;
+        foreach($room->services as $service){
+            if($service->name == 'electricity' || $service->name == "water"){
+                foreach($consumptions as $consumption){
+                    $consumption_usage = $this->consumptionService->getConsumptionUsage($consumption)?? $consumption->end_reading;
+                    $payment_item = PaymentItem::create([
+                        'payment_id' => $payment->id,
+                        'service_id' => $consumption->service_id,
+                        'unit_price' => $consumption->service()->price_per_unit,
+                        'quantity' => $consumption_usage,
+                        'subtotal' => $consumption_usage * $consumption->service()->price_per_unit,
+                    ]);
+                    $total_consumption_price += $consumption_usage * $consumption->service()->price_per_unit;
+                }
+            }
         }
+       
         
         foreach($room->services() as $service){
             $payment_item = PaymentItem::create([
