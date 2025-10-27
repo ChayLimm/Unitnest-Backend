@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class StorageController extends Controller
 {
@@ -35,13 +37,14 @@ class StorageController extends Controller
         $file = $request->file('image');
 
         $filename = time() . '_' . $file->getClientOriginalName();
-        
-        $path = '/home/chaylim/image_server/';
-        $file_move = $file->move($path, $filename);
 
-        $url = env('PUBLIC_APP_URL') . '/api/images/' . $filename;
+        $disk = Storage::disk('external');
 
-        Log::info("File uploaded to external storage", ['file_move' => $file_move, 'path' => $path, 'url' => $url]);
+        $path = $disk->putFileAs('', $file, $filename);
+
+        $url = $disk->url($path);
+
+        Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
 
         return response()->json([
             'message' => 'Uploaded successfully',
