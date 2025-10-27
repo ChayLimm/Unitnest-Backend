@@ -25,7 +25,7 @@ class StorageController extends Controller
 
     public function upload(Request $request)
     {
-        $url = env('REMOTE_STORAGE_URL') . '/' . 'upload';
+        $url = env('REMOTE_STORAGE_URL') . 'upload';
         $request->validate([
             'image' => 'required|file|mimes:jpg,jpeg,png|max:2048'
         ]);
