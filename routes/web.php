@@ -17,3 +17,5 @@ Route::get('/', function () {
     return view('landing');
     // return view('welcome');
 });
+Route::get('/logs', [App\Http\Controllers\LogController::class, 'index'])->name('logs.index');
+Route::post('/logs/clear', [App\Http\Controllers\LogController::class, 'clearLogs'])->name('logs.clear');
