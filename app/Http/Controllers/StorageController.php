@@ -35,14 +35,13 @@ class StorageController extends Controller
         $file = $request->file('image');
 
         $filename = time() . '_' . $file->getClientOriginalName();
+        
+        $path = '/home/chaylim/image_server/';
+        $file_move = $file->move($path, $filename);
 
-        $disk = Storage::disk('external');
+        $url = env('PUBLIC_APP_URL') . '/api/images/' . $filename;
 
-        $path = $disk->putFileAs('', $file, $filename);
-
-        $url = $disk->url($path);
-
-        Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
+        Log::info("File uploaded to external storage", ['file_move' => $file_move, 'path' => $path, 'url' => $url]);
 
         return response()->json([
             'message' => 'Uploaded successfully',
