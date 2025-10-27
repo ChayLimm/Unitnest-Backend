@@ -35,15 +35,21 @@ class StorageController extends Controller
         ]);
 
         $file = $request->file('image');
-
+        
         $filename = time() . '_' . $file->getClientOriginalName();
 
         $disk = Storage::disk('external');
 
         $path = $disk->putFileAs('', $file, $filename);
 
+        $disk = Storage::disk('external');
+
+        $path = $disk->putFileAs('', $file, $filename);
+
+        $url = $disk->url($path);
         $url = $disk->url($path);
 
+        Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
         Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
 
         return response()->json([
