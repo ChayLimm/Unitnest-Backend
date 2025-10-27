@@ -46,5 +46,4 @@ class StorageController extends Controller
             'url' => $url,
         ]);
     }
-    
 }
