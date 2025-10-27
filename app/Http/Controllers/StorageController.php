@@ -42,11 +42,10 @@ class StorageController extends Controller
             // e.g. remote server returns: { "url": "https://files.example.com/images/filename.jpg" }
             return response()->json([
                 'message' => 'Uploaded successfully',
-                'image_url' => $data['url'] ?? null
+                // 'image_url' => $data['url'] ?? null
             ]);
         }
 
         return response()->json(['message' => 'Failed to upload image'], 500);
     }
-    
 }

@@ -48,7 +48,7 @@ Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 Route::post('logout', [AuthController::class, 'logout']);
 
-Route::get('images',[StorageController::class, 'imageUrl'] );
+Route::get('images/{id}',[StorageController::class, 'imageUrl'] );
 Route::post('images/upload',[StorageController::class, 'upload'] );
 
 Route::middleware('auth:sanctum')->group(function () {
