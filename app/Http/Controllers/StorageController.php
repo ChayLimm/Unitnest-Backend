@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class StorageController extends Controller
 {
@@ -31,21 +32,19 @@ class StorageController extends Controller
 
         $file = $request->file('image');
 
-        $response = Http::attach(
-            'file', file_get_contents($file), $file->getClientOriginalName()
-        )->post(env('REMOTE_STORAGE_URL'));
+        $filename = time() . '_' . $file->getClientOriginalName();
 
-        if ($response->successful()) {
-            $data = $response->json();
+        $disk = Storage::disk('external');
 
-            // e.g. remote server returns: { "url": "https://files.example.com/images/filename.jpg" }
-            return response()->json([
-                'message' => 'Uploaded successfully',
-                'image_url' => $data['url'] ?? null
-            ]);
-        }
+        $path = $disk->putFileAs('', $file, $filename);
 
-        return response()->json(['message' => 'Failed to upload image'], 500);
+        $url = $disk->url($path);
+
+        return response()->json([
+            'message' => 'Uploaded successfully',
+            'path' => $path,
+            'url' => $url,
+        ]);
     }
     
 }
