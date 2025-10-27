@@ -33,7 +33,7 @@ class StorageController extends Controller
 
         $response = Http::attach(
             'file', file_get_contents($file), $file->getClientOriginalName()
-        )->post(env('REMOTE_STORAGE_URL'));
+        )->post(env('REMOTE_STORAGE_URL' . '/upload'));
 
         if ($response->successful()) {
             $data = $response->json();
