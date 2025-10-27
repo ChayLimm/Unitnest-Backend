@@ -48,9 +48,11 @@ Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
 Route::post('logout', [AuthController::class, 'logout']);
 
+Route::get('images/{id}',[StorageController::class, 'imageUrl'] );
+Route::post('images/upload',[StorageController::class, 'upload'] );
+
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('images/{id}',[StorageController::class, 'imageUrl'] );
-    Route::get('images',[StorageController::class, 'imageUrl'] );
+    // Route::get('images',[StorageController::class, 'imageUrl'] );
     Route::get('/v1/bakong', [BakongController::class, 'index']);
     Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR']);
     Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
