@@ -47,7 +47,7 @@ return [
         'external' => [
             'driver' => 'local',
             'root' => env('EXTERNAL_STORAGE_PATH'),
-            'url' => env('REMOTE_STORAGE_URL') . 'images',
+            'url' => env('REMOTE_STORAGE_URL') . '/api/images',
             'visibility' => 'public',
         ],
 
