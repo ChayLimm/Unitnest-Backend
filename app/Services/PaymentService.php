@@ -15,20 +15,20 @@ use App\Services\ConsumptionService;
 class PaymentService{
     protected int $landlord_id;
     protected int $tenant_id;
-    protected int $room_id;
+    protected Room $room;
     protected ?Consumption $consumption;
 
 
-    public function __construct(private ConsumptionService $consumptionService,private BakongService $bakongService,$landlord_id, $tenant_id, $room_id, ?Consumption $consumption = null)
+    public function __construct(private ConsumptionService $consumptionService,private BakongService $bakongService, $room_id, ?Consumption $consumption = null)
     {
-        $this->landlord_id = $landlord_id;
-        $this->tenant_id = $tenant_id;
-        $this->room_id = $room_id;
+        $this->tenant_id = $this->room->currentContract;
         $this->consumption = $consumption;
+        $this->room =  Room::find($room_id);
+        $this->landlord_id = $this->room->building->landlord;        
     }
     
     public function processPayment(?Consumption ...$consumptions){
-        if(!$consumptions){
+        if(!$consumptions && ){
             //no soncumpiton
         }else{
             //define all needed variable
