@@ -25,6 +25,7 @@ class StorageController extends Controller
 
     public function upload(Request $request)
     {
+        $url = env('REMOTE_STORAGE_URL') . '/' . 'upload';
         $request->validate([
             'image' => 'required|file|mimes:jpg,jpeg,png|max:2048'
         ]);
@@ -33,7 +34,7 @@ class StorageController extends Controller
 
         $response = Http::attach(
             'file', file_get_contents($file), $file->getClientOriginalName()
-        )->post(env('REMOTE_STORAGE_URL' . '/upload'));
+        )->post($url);
 
         if ($response->successful()) {
             $data = $response->json();
