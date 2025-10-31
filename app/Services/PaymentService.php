@@ -1,5 +1,5 @@
 <?php
-
+namespace App\Services;
 use App\Enums\PaymentStatus;
 use App\Models\Bakong;
 use App\Models\Consumption;
@@ -10,100 +10,241 @@ use App\Models\Service;
 use App\Models\PaymentItem;
 use App\Services\BakongService;
 use App\Services\ConsumptionService;
+use Illuminate\Support\Facades\Log;
 
 
 class PaymentService{
     protected int $landlord_id;
     protected int $tenant_id;
     protected Room $room;
-    protected ?Consumption $consumption;
 
+    protected ConsumptionService $consumptionService;
+    protected BakongService $bakongService;
 
-    public function __construct(private ConsumptionService $consumptionService,private BakongService $bakongService, $room_id, ?Consumption $consumption = null)
+    public function __construct(int $room_id)
     {
-        $this->tenant_id = $this->room->currentContract;
-        $this->consumption = $consumption;
-        $this->room =  Room::find($room_id);
-        $this->landlord_id = $this->room->building->landlord;        
+        // resolve other services automatically
+        $this->consumptionService = app(ConsumptionService::class);
+        $this->bakongService = app(BakongService::class);
+
+        // initialize your other properties
+        $this->room = Room::find($room_id);
+        $this->tenant_id = $this->room->currentContract->tenant_id;
+        $this->landlord_id = $this->room->building->landlord->id;
     }
-    
+
     public function processPayment(?Consumption ...$consumptions){
-        if(!$consumptions && ){
-            //no soncumpiton
-        }else{
-            //define all needed variable
-            $status = PaymentStatus::Pending;
-            $total_consumption_price = 0;
-            $service_fee = 0;
-
-            // initialize the payment record
-            $payment = Payment::create([
-                'landlord_id' => $this->landlord_id,
-                'tenant_id' => $this->tenant_id,
-                'room_id' => $this->room_id,
-                'status' => $status,
-        ]);
-
-        //find total price
-        $room = Room::find($this->room_id);
+        Log::info("\n################################################################\n################################################################\n################################################################");
+        Log::info("consumptions count: " . count($consumptions));
+        $status = PaymentStatus::PENDING->value;
+    
+        Log::info("already init status {$status}");
         
-        //find total consumption usage price
+        if(empty($consumptions)){
+            // Handle no consumption case
+            return response()->json([
+                'status' => 400,
+                'message' => 'No consumptions provided'
+            ]);
+        }
+        
+        
+        $payment = Payment::create([
+            'landlord_id' => $this->landlord_id,
+            'tenant_id' => $this->tenant_id,
+            'room_id' => $this->room->id,
+            'status' => $status,
+        ]);
+        
+        Log::info('Payment created', [
+            'payment_id' => $payment->id,
+            'room_id' => $payment->room_id,
+            'status' => $payment->status,
+        ]);
+    
+        $room = Room::find($this->room->id);
+        Log::info("pin1");
+        Log::info("room services : {$room->services}");
+
         foreach($room->services as $service){
             if($service->name == 'electricity' || $service->name == "water"){
-                foreach($consumptions as $consumption){
-                    $consumption_usage = $this->consumptionService->getConsumptionUsage($consumption)?? $consumption->end_reading;
-                    $payment_item = PaymentItem::create([
-                        'payment_id' => $payment->id,
-                        'service_id' => $consumption->service_id,
-                        'unit_price' => $consumption->service()->price_per_unit,
-                        'quantity' => $consumption_usage,
-                        'subtotal' => $consumption_usage * $consumption->service()->price_per_unit,
-                    ]);
-                    $total_consumption_price += $consumption_usage * $consumption->service()->price_per_unit;
+                $matchingConsumption = null;
+                foreach($consumptions as $consumption) {
+                    if($consumption->service_id == $service->id) {
+                        $matchingConsumption = $consumption;
+                        break;
+                    }
                 }
+                
+                if($matchingConsumption) {
+                    Log::info("Processing consumption for service: {$service->name}", [
+                        'consumption_id' => $matchingConsumption->id ?? 'new',
+                        'service_id' => $matchingConsumption->service_id
+                    ]);
+                    
+                    // If consumption is not saved yet, save it
+                    if(!$matchingConsumption->id) {
+                        $matchingConsumption->save();
+                    }
+                    
+                    $consumption_usage = $this->consumptionService->getConsumptionUsage($room->id, $matchingConsumption->id) ?? $matchingConsumption->end_reading;
+                    
+                    Log::info("consumption usage = " . $consumption_usage);
+    
+                    PaymentItem::create([
+                        'payment_id' => $payment->id,
+                        'service_id' => $service->id,
+                        'service_name' => $service->name,
+                        'unit_price' => $service->unit_price,
+                        'quantity' => $consumption_usage,
+                        'subtotal' => $consumption_usage * $service->unit_price,
+                    ]);
+                }
+            } else {
+                // Flat-rate services (Parking, Wifi)
+                PaymentItem::create([
+                    'payment_id' => $payment->id,
+                    'service_id' => $service->id,
+                    'service_name' => $service->name,
+                    'unit_price' => $service->unit_price,
+                    'quantity' => 1,
+                    'subtotal' => $service->unit_price,
+                ]);
             }
         }
-       
         
-        foreach($room->services() as $service){
-            $payment_item = PaymentItem::create([
-                'payment_id' => $payment->id,
-                'service_id' => $service->id,
-                'unit_price' => $service->unit_price,
-                'quantity' => 1,
-                'subtotal' => $service->unit_price,
-            ]);
-            $service_fee += $service->monthly_fee;
-        }
-
-        //store room price
-        $payment_item = PaymentItem::create([
+        Log::info("done processing payment items");
+    
+        PaymentItem::create([
             'payment_id' => $payment->id,
-            'service_id' => $service->id,
-            'unit_price' => $service->unit_price,
+            'service_name' => "room",
+            'unit_price' => $room->price,
             'quantity' => 1,
-            'subtotal' => $service->unit_price,
+            'subtotal' => $room->price,
         ]);
+    
+        $total = $this->getTotalPayment($payment->id);
+    
+        // Get QR, md5 and deep link
+        $response = $this->bakongService->generateKHQR($total);
+        $responseData = $response->getData(true); 
 
-        $total = $this->getTotalPayment($payment->id); //need room price
-        //get qr, md5 and deep link
-
-        $response =  $this->bakongService->generateKHQR($total);
-        $transaction =  $response['transaction'];
-
-        $payment->update([
-            'transaction_id' => $transaction->id
-        ]);
+        if ($responseData['success']) {
+            $transaction = $responseData['data']['transaction'];
+            
+            Log::info("response from bakong = " . json_encode($responseData));
+            
+            $payment->update([
+                'transaction_id' => $transaction['id'],
+                'qr_code' => $responseData['data']['qr_code'],
+                'md5' => $responseData['data']['md5'],
+            ]);
+        } else {
+            // Handle error
+            Log::error("Bakong KHQR generation failed: " . $responseData['message']);
         }
-      
+        
+        return response()->json([
+            'status' => 200,
+            'payment_id' => $payment->id,
+            'payment' => $payment,
+            'total' => $total
+        ]);
     }
+    
+    // public function processPayment(?Consumption ...$consumptions){
+    //     Log::info("\n################################################################\n################################################################\n################################################################");
+    //     Log::info("consumptions:\n" . json_encode($consumptions, JSON_PRETTY_PRINT));        $status = PaymentStatus::PENDING->value;
+
+    //     Log::info("already init status {$status} ");
+        
+    //     if(!$consumptions){
+    //         //no soncumpiton
+    //     }else{
+    //         // initialize the payment record
+    //         $payment = Payment::create([
+    //             'landlord_id' => $this->landlord_id,
+    //             'tenant_id' => $this->tenant_id,
+    //             'room_id' => $this->room->id,
+    //             'status' => $status,
+    //         ]);
+    //         Log::info('Payment created', [
+    //             'payment_id' => $payment->id,
+    //             'room_id' => $payment->room_id,
+    //             'status' => $payment->status,
+    //         ]);
+    //         //find total price
+    //         $room = Room::find($this->room->id);
+    //         // Log::info("proccessing payment items ");
+    //         // Log::info("room service {$room->services}");
+    //         Log::info("pin1");
+    //         //find total consumption usage price
+    //         foreach($room->services as $service){
+    //             if($service->name == 'electricity' || $service->name == "water"){
+    //                 foreach($consumptions as $consumption){
+    //                     Log::info("consumption : ${consumption}");
+    //                     $new_consumptuion = Consumption::create($consumption);
+    //                     $consumption_usage = $this->consumptionService->getConsumptionUsage($new_consumptuion)?? $consumption->end_reading;
+    //                     Log::info("consumption usage = ${consumption_usage}");
+
+    //                     PaymentItem::create([
+    //                         'payment_id' => $payment->id,
+    //                         'service_id' => $consumption->service_id,
+    //                         'service_name' => $consumption->service->name,
+    //                         'unit_price' => $consumption->service()->price_per_unit,
+    //                         'quantity' => $consumption_usage,
+    //                         'subtotal' => $consumption_usage * $consumption->service->price_per_unit,
+    //                     ]);
+    //                 }
+    //             }else{
+    //                 PaymentItem::create([
+    //                     'payment_id' => $payment->id,
+    //                     'service_id' => $service->id,
+    //                     'service_name' => $service->name,
+    //                     'unit_price' => $service->unit_price,
+    //                     'quantity' => 1,
+    //                     'subtotal' => $service->unit_price,
+    //                 ]);
+    //             }
+    //         }        
+    //         Log::info("done proccessing payment items ");
+
+        
+    //         //store room price
+    //         PaymentItem::create([
+    //             'payment_id' => $payment->id,
+    //             'service_name' => "room",
+    //             'unit_price' => $service->unit_price,
+    //             'quantity' => 1,
+    //             'subtotal' => $service->unit_price,
+    //         ]);
+
+    //         $total = $this->getTotalPayment($payment->id); //need room price
+
+    //         //get qr, md5 and deep link
+    //         $response =  $this->bakongService->generateKHQR($total);
+    //         $transaction =  $response['data']['transaction'];
+
+    //         $payment->update([
+    //             'transaction_id' => $transaction->id
+    //         ]);
+    //     }
+    //     return response()->json(([
+    //         'stutus' => 200,
+    //         'payment_id' => $payment->id
+    //     ]));
+    // }
 
     public function getTotalPayment(int $payment_id){
-        //if have transaction and paid = get data from payload
-        //else compute it 
-        $total = 0;
         $payment = Payment::find($payment_id);
         $room = Room::find($payment->room->id);
+
+        //if have transaction and paid = get data from payload
+        if($payment->transaction_id){
+
+        }else{
+        //else compute it 
+        $total = 0;
         $payment_items = $payment->paymentItems;
         foreach($payment_items as $item){
             //sum all subtotal
@@ -111,5 +252,6 @@ class PaymentService{
         }
 
         return $total;
+    }
     }
 }

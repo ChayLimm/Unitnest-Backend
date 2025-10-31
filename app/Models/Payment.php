@@ -22,9 +22,7 @@ class Payment extends Model
         'deep_link',
         'md5',
     ];
-    protected $casts = [
-        'status' => PaymentStatus::class,
-    ];
+ 
 
     // Relationships
     public function tenant()
@@ -49,7 +47,7 @@ class Payment extends Model
 
     public function paymentItems()
     {
-        return $this->hasMany(PaymentItem::class);
+        return $this->hasMany(PaymentItem::class,'payment_id');
     }
 
     public function notifications()

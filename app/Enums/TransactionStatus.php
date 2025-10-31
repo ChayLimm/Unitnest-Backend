@@ -2,8 +2,8 @@
 namespace App\Enums;
 
 enum TransactionStatus: string{
-    case Unpaid = "unpaid";
-    case Paid = "paid";
-    case Failed = 'failed';
+    case UNPAID = "unpaid";
+    case PAID = "paid";
+    case FAILED = 'failed';
 
 }

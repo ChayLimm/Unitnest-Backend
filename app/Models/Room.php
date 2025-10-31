@@ -41,7 +41,7 @@ class Room extends Model
 
     public function consumptions()
     {
-        return $this->hasMany(Consumption::class,'consumpution');
+        return $this->hasMany(Consumption::class,'room_id');
     }
 
     public function payments()

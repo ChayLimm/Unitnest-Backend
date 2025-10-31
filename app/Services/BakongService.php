@@ -27,7 +27,7 @@ class BakongService
         $this->bakong_mobile_number = config('bakong.mobile_number');
     }
 
-    public function generateKHQR(float $amount): array
+    public function generateKHQR(float $amount)
     {
         DB::beginTransaction();
 
@@ -76,23 +76,23 @@ class BakongService
             $deepLink = $data['shortLink'] ?? null;
 
             $transaction = Transaction::create([
-                'payload' => null,
+                'payload' => $data,
             ]);
 
             DB::commit();
 
             // Dispatch queued job to check transaction asynchronously
-            CheckTransactionStatusJob::dispatch($md5);
+            // CheckTransactionStatusJob::dispatch($md5);
 
-            return [
+            return response()->json([
                 'success' => true,
                 "data" => [
                     "transaction" => $transaction,
-                    "qr" => $qr,
+                    "qr_code" => $qr,
                     "md5" => $md5,
                     "deepLink" => $deepLink,
                 ]
-            ];
+            ]);
 
         }catch(\Exception $e){
             DB::rollBack();
