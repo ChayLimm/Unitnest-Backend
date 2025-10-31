@@ -105,4 +105,4 @@ Route::patch('payments/{payment}/status', [PaymentController::class, 'updateStat
 Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, 'getPaymentItems']);
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
-
+Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
