@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
+use App\Models\Consumption;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -94,5 +97,23 @@ class PaymentController extends Controller
         $payment->update($validated);
 
         return response()->json($payment);
+    }
+
+    public function processPayment(Request $request)  {
+
+        $room_id = $request->input('room_id');
+        $consumptions = $request->input('consumptions');
+       
+        $consumptionModels = [];
+        foreach ($consumptions as $data) {
+            $consumptionModels[] = new Consumption($data);
+        }
+        Log::info(("calling payment service"));
+        $payment_service = new PaymentService($room_id,);
+        // $consumptions = Consumption::all();
+        $response = $payment_service->processPayment(...$consumptionModels);
+        
+        return response()->json($response);
+
     }
 }

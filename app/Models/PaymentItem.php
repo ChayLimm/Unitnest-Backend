@@ -15,6 +15,7 @@ class PaymentItem extends Model
     protected $fillable = [
         'payment_id',
         'service_id',
+        'service_name',
         'unit_price',
         'quantity',
         'subtotal',
@@ -28,6 +29,6 @@ class PaymentItem extends Model
 
     public function service()
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(Service::class,'service_id');
     }
 }
