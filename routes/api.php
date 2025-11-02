@@ -26,7 +26,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
 use App\Http\Controllers\BakongController;
 use App\Http\Controllers\LogController;
-
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\TelegramBotController;
 
 /*
@@ -106,3 +106,7 @@ Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, '
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
+
+// Receipt PDF Download
+Route::get('receipts/download', [ReceiptController::class, 'download']);
+Route::get('receipts/test-receipt', [ReceiptController::class, 'testReceipt']);
