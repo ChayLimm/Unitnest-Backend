@@ -9,13 +9,13 @@
         "backpack/crud": "^6.8",
         "backpack/theme-tabler": "^1.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "endroid/qr-code": "^5.0",
         "guzzlehttp/guzzle": "^7.2",
         "khqr-gateway/bakong-khqr-php": "1.0.0",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
-        "laraveldaily/laravel-invoices": "^4.1",
-        "simplesoftwareio/simple-qrcode": "^4.2"
+        "laraveldaily/laravel-invoices": "^4.1"
     },
     "require-dev": {
         "backpack/generators": "^4.0",

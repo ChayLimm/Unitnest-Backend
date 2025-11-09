@@ -17,6 +17,8 @@ class ReceiptController extends Controller
             'name' => 'John Doe',
             'custom_fields' => [
                 'email' => 'john@example.com',
+                'phone' => '012-345-6789',
+                'address' => '123 Main St, Cityville',
             ],
         ]);
 
@@ -34,18 +36,26 @@ class ReceiptController extends Controller
         return $invoice->stream(); // or ->download()
     }
 
-    public function testReceipt()
+    public function testReceipt(Request $request)
     {
         $data = [
-            'id' => 123,
-            'customer_name' => 'John Doe',
-            'customer_email' => 'john@example.com',
-            'items' => [
-                ['name' => 'Subscription Plan', 'qty' => 1, 'price' => 29.99],
-                ['name' => 'Rental', 'qty' => 1, 'price' => 250.00],
-                ['name' => 'Service', 'qty' => 2, 'price' => 100.00],
+            'tenant_name' => $request->input('tenant_name'),
+            'building_name' => $request->input('building_name'),
+            'room_name' => $request->input('room_name'),
+
+            // Old/new meter readings
+            'readings' => [
+                ['item' => 'Water', 'new' => '00266', 'old' => '00250', 'total' => 16],
+                ['item' => 'Electricity', 'new' => '02618', 'old' => '02512', 'total' => 106],
             ],
-            'qr_content' => 'https://example.com/verify/123'
+
+            // Invoice line items
+            'items' => [
+                ['name' => 'Water', 'quantity' => 16, 'price' => 0.50],
+                ['name' => 'Electricity', 'quantity' => 106, 'price' => 0.25],
+                ['name' => 'Motor', 'quantity' => 2, 'price' => 8.00],
+                ['name' => 'Room', 'quantity' => 1, 'price' => 100.00],
+            ],
         ];
 
         $invoice = ReceiptService::generate($data);
