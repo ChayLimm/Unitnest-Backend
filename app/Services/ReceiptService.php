@@ -2,84 +2,106 @@
 
 namespace App\Services;
 
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\Writer\PngWriter;
+
+use LaravelDaily\Invoices\Invoice;
 use LaravelDaily\Invoices\Classes\Buyer;
 use LaravelDaily\Invoices\Classes\Seller;
 use LaravelDaily\Invoices\Classes\InvoiceItem;
-use LaravelDaily\Invoices\Invoice;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Illuminate\Support\Facades\Storage;
+
 use Illuminate\Support\Facades\Log;
 
 class ReceiptService
 {
-    public static function generate($data)
+    public static function generate(array $data)
     {
         try {
-            // Seller info
-            $seller = new Seller([
-                'name' => config('app.name'),
-                'phone' => '012-345-6789',
+            $landlord = new Seller([
+                'name' => 'Lomnov Real Estate',
+                'phone' => '023-456-7890',
                 'custom_fields' => [
-                    'Email' => 'info@example.com',
-                    'Address' => '123 Business Street, City',
+                    'Email' => 'info@lomnov.com',
+                    'Address' => '456 Property Ave, Metropolis',
+                    'National ID' => '123-45-6789',
                 ],
             ]);
 
-            // Buyer info
-            $buyer = new Buyer([
-                'name' => $data['customer_name'],
+            $tenant = new Buyer([
+                'name' => $data['tenant_name'],
                 'custom_fields' => [
-                    'Email' => $data['customer_email'] ?? '',
+                    'Building' => $data['building_name'] ?? '',
+                    'Room' => $data['room_name'] ?? '',
                 ],
             ]);
+
+            $readingsInfo = collect($data['readings'])->map(function ($r) {
+                return [
+                    'item' => $r['item'],
+                    'new' => $r['new'],
+                    'old' => $r['old'],
+                    'total' => $r['total'],
+                ];
+            });
+ 
 
             // Items
             $items = collect($data['items'])->map(function ($item) {
                 return (new InvoiceItem())
                     ->title($item['name'])
                     ->pricePerUnit($item['price'])
-                    ->quantity($item['qty']);
+                    ->quantity($item['quantity']);
             });
 
             // Generate QR code as base64
-            $qrContent = $data['qr_content'] ?? 'https://example.com/verify/' . ($data['id'] ?? uniqid());
-            $qrImage = QrCode::format('png')->size(200)->generate($qrContent);
-            $qrBase64 = 'data:image/png;base64,' . base64_encode($qrImage);
+            $qrContent = $data['qr_content'] ?? 'https://bakong.page.link/h8DnkCxJDEsCSV3F8' . ($data['id'] ?? uniqid());
+            $logoPath = public_path('vendor/invoices/lomnov_logo.png');
 
-            // Log::info('QR Code generated', [
-            //     'path' => Storage::disk('public')->path($qrCodePath),
-            //     'url' => asset('storage/' . $qrCodePath),
-            // ]);
+            try {
+                if (!file_exists($logoPath)) {
+                    Log::warning('Bakong logo not found at ' . $logoPath);
+                    $logoPath = null;
+                }
 
-            // $qrPublicUrl = asset('storage/' . $qrCodePath);
+                $qrCodeResult = Builder::create()
+                    ->writer(new PngWriter())
+                    ->data($qrContent)
+                    ->encoding(new Encoding('UTF-8'))
+                    ->size(200)
+                    ->margin(10)
+                    ->logoPath($logoPath)
+                    ->logoResizeToWidth(50)
+                    ->logoPunchoutBackground(true)
+                    ->build();
 
-            // $qrBinary = Storage::disk('public')->get($qrCodePath);
-            // $qrBase64 = 'data:image/png;base64,' . base64_encode($qrBinary);
+                $qrImageString = $qrCodeResult->getString();
+                $qrBase64 = 'data:image/png;base64,' . base64_encode($qrImageString);
+
+            } catch (\Throwable $e) {
+                Log::error('QR Code generation failed', [
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
 
             // Create invoice
             $invoice = Invoice::make('RECEIPT')
-                ->buyer($buyer)
-                ->seller($seller)
+                ->buyer($tenant)
+                ->seller($landlord)
                 ->logo(public_path('vendor/invoices/lomnov_logo.png'))
+                ->template('lomnov_receipt')
                 ->currencySymbol('$')
                 ->currencyCode('USD')
                 ->date(now())
                 ->addItems($items->toArray())
-                ->notes('Thank you for your purchase!')
-                ->filename('receipt_' . $data['id'])
+                ->notes('Thank you for your rent payment.')
+                ->filename('receipt_' . ($data['id'] ?? uniqid()))
                 ->setCustomData([
-                    // 'qr_code_url' => $qrPublicUrl,      // optional
-                    'qr_code_base64' => $qrBase64,      // recommended
+                    'qr_code_base64' => $qrBase64,
+                    'readings' => $readingsInfo,
                 ])
                 ->save('public');
-
-            // Attach QR code
-            // $invoice->qr_code_url = 'storage/' . $qrCodePath;
-
-            // Log::info('Invoice generated', [
-            //     'filename' => $invoice->name,
-            //     'path' => Storage::disk('public')->path('invoices/' . $invoice->name . '.pdf'),
-            // ]);
 
             return $invoice;
 
