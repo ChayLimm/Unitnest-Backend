@@ -78,7 +78,7 @@ class GeminiService
                     ]
                 ],
                 'generationConfig' => [
-                    'maxOutputTokens' => 200, // optimize token usage
+                    'maxOutputTokens' => 512, // balance for JSON response
                     'temperature' => 0.7,
                 ]
             ];

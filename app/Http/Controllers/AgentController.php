@@ -174,7 +174,7 @@ class AgentController extends Controller
     // handle callback queries
     private function handleCallbackQuery($landlordId ,$chatId, $data)
     {
-        //
+        // 
     }
 
 
@@ -310,11 +310,17 @@ class AgentController extends Controller
         // 2. Agent behavior  
         // 3. Available functions
         $landlordPhone = "N/A";
+        if ($landlordId) {
+            $landlord = User::find($landlordId);
+            if ($landlord && !empty($landlord->phonenumber)) {
+                $landlordPhone = $landlord->phonenumber;
+            }
+        }
         
         return "You are a property rental assistant. Answer briefly (max 3 lines).
 
                 AVAILABLE DATA:
-                - Contact: {$landlordPhone}
+                - Contact Landlord: {$landlordPhone}
 
                 FUNCTIONS (choose event based on user question):
                 - checkGeneralRule → property rules
@@ -331,9 +337,8 @@ class AgentController extends Controller
                 - \"checkAvailableRoom\" → questions about rooms, vacancy, availability
                 - null → greetings (hi/hello), help requests, general question related, off-topic
 
-                3. Use \\n for line breaks. Use bullet points (•) for lists.
-                4. Add emojis for friendliness: 🏠 📋 📄 💳 👋 😊
-                5. If you don't have information about something, politely say 'I don't have that information yet'.
+                3. Use \\n for line breaks. Use bullet points (•) for lists.Add emojis for friendliness.
+                4. If you don't have information about something, politely say 'I don't have that information yet'.
                 
                 HELP/MENU REQUESTS:
                 If the user asks for help, what you can do, menu, options, features, how you can help, or similar:
