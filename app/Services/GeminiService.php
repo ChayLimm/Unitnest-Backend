@@ -78,7 +78,7 @@ class GeminiService
                     ]
                 ],
                 'generationConfig' => [
-                    'maxOutputTokens' => 512, // balance for JSON response
+                    'maxOutputTokens' => 1024, // balance for JSON response 
                     'temperature' => 0.7,
                 ]
             ];
@@ -92,6 +92,16 @@ class GeminiService
             }
 
             $result = $response->json();
+            // Log::info("{$model} response:", ['result' => $result]);
+            // log token usage
+            if (isset($result['usageMetadata'])) {
+                Log::info("Token usage", [
+                    'model' => $model,
+                    'input_tokens' => $result['usageMetadata']['promptTokenCount'] ?? 0,
+                    'output_tokens' => $result['usageMetadata']['candidatesTokenCount'] ?? 0,
+                    'total_tokens' => $result['usageMetadata']['totalTokenCount'] ?? 0,
+                ]);
+            }
 
             if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
                 $text = trim($result['candidates'][0]['content']['parts'][0]['text']);
@@ -108,11 +118,11 @@ class GeminiService
             return null;
     
         } catch (ConnectionException $e) { // timeout or connection issues
-            Log::error("Model {$modelName} request error: " . $e->getMessage());
+            Log::error("Model {$model} request error: " . $e->getMessage());
             return null;
 
         } catch (\Exception $e) {
-            Log::error("Model {$modelName} error: " . $e->getMessage());
+            Log::error("Model {$model} error: " . $e->getMessage());
             return null;
         }
     }
