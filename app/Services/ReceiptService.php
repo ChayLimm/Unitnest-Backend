@@ -4,7 +4,7 @@ namespace App\Services;
 
 use LaravelDaily\Invoices\Invoice;
 use LaravelDaily\Invoices\Classes\Buyer;
-use LaravelDaily\Invoices\Classes\Seller;
+use LaravelDaily\Invoices\Classes\Party;
 use LaravelDaily\Invoices\Classes\InvoiceItem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
@@ -21,14 +21,11 @@ class ReceiptService
     {
         try {
             // Seller / Landlord
-            $landlord = new Seller([
-                'name' => 'Lomnov Real Estate',
-                'address' => '456 Property Ave, Metropolis',
-                'phone' => '023-456-7890',
-                'custom_fields' => [
-                    'Email' => 'info@lomnov.com',
-                    'National ID' => '123-45-6789',
-                ],
+           $landlord = new Party([
+                'name'          => $data['landlord_name'] ?? 'Lomnov Real Estate',
+                'address'       => $data['landlord_address'] ?? 'Phnom Penh, Cambodia',
+                'phone'         => $data['landlord_phone'] ?? null,
+                'custom_fields' => $data['landlord_custom_fields'] ?? [],
             ]);
 
             // Buyer / Tenant
@@ -60,11 +57,13 @@ class ReceiptService
                     ->quantity($item['quantity']);
             });
 
+            $merchant = self::normalizeMerchantData($data);
+
             // Create invoice first to get total_amount
             $invoice = Invoice::make()
                 ->name('RENT RECEIPT')
-                ->buyer($tenant)
                 ->seller($landlord)
+                ->buyer($tenant)
                 ->template('lomnov_receipt')
                 ->logo(public_path('vendor/invoices/lomnov_logo.png'))
                 ->currencySymbol('$')
@@ -73,7 +72,7 @@ class ReceiptService
                 ->addItems($items->toArray())
                 ->notes('Thank you for your rent payment. Please pay by the due date.');
 
-            $totalAmount = $invoice->total_amount;
+            $totalAmount = $invoice->calculate()->total_amount;
             
             Log::info('Invoice total calculated', [
                 'total_amount' => $totalAmount,
@@ -85,16 +84,16 @@ class ReceiptService
 
             if (!$qrBase64 || !self::isValidBase64Image($qrBase64)) {
                 $qrBase64 = self::fetchQRFromMicroservice([
-                    'merchant_account' => $data['merchant_account'] ?? 'lomnov@aba',
-                    'merchant_name' => $data['merchant_name'] ?? 'Lomnov Real Estate',
-                    'merchant_city' => $data['merchant_city'] ?? 'Phnom Penh',
-                    'amount' => $totalAmount ?? 0,
-                    'reference' => $data['reference'] ?? 'N/A',
-                    'currency' => $data['currency'] ?? 'USD',
-                    'store_label' => $data['store_label'] ?? 'Lomnov Store',
-                    'phone_number' => $data['phone_number'] ?? '85512345678',
-                    'terminal_label' => $data['terminal_label'] ?? 'Rental-01',
-                    'static' => $data['static'] ?? false,
+                    'merchant_account' => $merchant['account'],
+                    'merchant_name'    => $merchant['name'],
+                    'merchant_city'    => $merchant['city'],
+                    'amount'           => $totalAmount ?? 0,
+                    'reference'        => $merchant['reference'],
+                    'currency'         => $merchant['currency'],
+                    'store_label'      => $merchant['store_label'],
+                    'phone_number'     => $merchant['phone_number'],
+                    'terminal_label'   => $merchant['terminal_label'],
+                    'static'           => $merchant['static'],
                 ]);
             }
 
@@ -126,6 +125,21 @@ class ReceiptService
             ]);
             throw $e;
         }
+    }
+
+    private static function normalizeMerchantData(array $data): array
+    {
+        return [
+            'account'       => $data['merchant_account'],
+            'name'          => $data['merchant_name'] ?? 'Lomnov Real Estate',
+            'city'          => $data['merchant_city'] ?? 'Phnom Penh',
+            'currency'      => $data['currency'] ?? 'USD',
+            'store_label'   => $data['store_label'] ?? 'Lomnov Store',
+            'phone_number'  => $data['phone_number'],
+            'terminal_label'=> $data['terminal_label'] ?? 'Rental-01',
+            'static'        => $data['static'] ?? false,
+            'reference'     => $data['reference'] ?? ('RENT-' . time()),
+        ];
     }
 
     /**
