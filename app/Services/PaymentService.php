@@ -4,13 +4,16 @@ use App\Enums\PaymentStatus;
 use App\Models\Bakong;
 use App\Models\Consumption;
 use App\Models\Payment;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\Room;
 use App\Models\Service;
 use App\Models\PaymentItem;
 use App\Services\BakongService;
 use App\Services\ConsumptionService;
+use Illuminate\Database\Eloquent\PendingHasThroughRelationship;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 
 class PaymentService{
@@ -33,11 +36,13 @@ class PaymentService{
         $this->landlord_id = $this->room->building->landlord->id;
     }
 
-    public function processPayment(?Consumption ...$consumptions){
+    public function processPayment(?bool $lastPayment,?bool $chargePenalty,?Consumption ...$consumptions){
         Log::info("\n################################################################\n################################################################\n################################################################");
         Log::info("consumptions count: " . count($consumptions));
         $status = PaymentStatus::PENDING->value;
-    
+        $setting = Setting::where('user_id', $this->landlord_id)->first();
+
+
         Log::info("already init status {$status}");
         
         if(empty($consumptions)){
@@ -48,13 +53,31 @@ class PaymentService{
             ]);
         }
         
-        
         $payment = Payment::create([
             'landlord_id' => $this->landlord_id,
             'tenant_id' => $this->tenant_id,
             'room_id' => $this->room->id,
             'status' => $status,
         ]);
+
+        if($chargePenalty){
+            Log::info("charging penalty");
+            $dateTime = Carbon::today();
+            $fine_after = now()->setDay($setting->fine_after)->startOfDay();
+
+            $days = $dateTime->diffInDays($fine_after);
+
+            $fine_fee = $days * $setting->fine_per_day;
+         
+            PaymentItem::create([
+                'payment_id' => $payment->id,
+                // 'service_id' => $service->id,
+                'service_name' => "Fine",
+                'unit_price' => $setting->fine_per_day,
+                'quantity' => $days,
+                'subtotal' => $fine_fee,
+            ]);
+        }
         
         Log::info('Payment created', [
             'payment_id' => $payment->id,
@@ -114,14 +137,17 @@ class PaymentService{
         }
         
         Log::info("done processing payment items");
-    
-        PaymentItem::create([
-            'payment_id' => $payment->id,
-            'service_name' => "room",
-            'unit_price' => $room->price,
-            'quantity' => 1,
-            'subtotal' => $room->price,
-        ]);
+               
+        //last payment
+        if(!$lastPayment){
+            PaymentItem::create([
+                'payment_id' => $payment->id,
+                'service_name' => "Room",
+                'unit_price' => $room->price,
+                'quantity' => 1,
+                'subtotal' => $room->price,
+            ]);
+        }
     
         $total = $this->getTotalPayment($payment->id);
     
@@ -148,6 +174,7 @@ class PaymentService{
             'status' => 200,
             'payment_id' => $payment->id,
             'payment' => $payment,
+            'paymnet_items'=> $payment->paymentItems,
             'total' => $total
         ]);
     }
