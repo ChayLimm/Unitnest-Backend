@@ -60,6 +60,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/bot', [BotController::class, 'handleAccess']);
 
+// Route::post('/agent', [AgentController::class, 'handleWebhook']);
+Route::post('/agent/{token}', [AgentController::class, 'handleWebhook']);
+Route::post('/agent/webhook/{token}', [AgentController::class, 'setUpWebhook']);
+
+
 
 Route::get('/test', function () {
     return response()->json(['message' => 'Test endpoint is working!']);
