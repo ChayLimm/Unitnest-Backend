@@ -31,7 +31,7 @@ class Room extends Model
 
     public function roomType()
     {
-        return $this->hasOne(RoomType::class,'room_type_id');
+        return $this->hasOne(RoomType::class,'id','room_type_id');
     }
 
     public function contracts()
