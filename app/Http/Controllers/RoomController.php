@@ -7,10 +7,25 @@ use Illuminate\Http\Request;
 
 class RoomController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $rooms = Room::with(['building', 'roomType', 'contracts', 'currentContract.tenant'])->get();
-        return response()->json($rooms);
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
+        $rooms = Room::with(['building', 'roomType', 'contracts', 'currentContract.tenant'])
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $rooms->items(),
+            'pagination' => [
+                'current_page' => $rooms->currentPage(),
+                'per_page' => $rooms->perPage(),
+                'total' => $rooms->total(),
+                'last_page' => $rooms->lastPage(),
+                'from' => $rooms->firstItem(),
+                'to' => $rooms->lastItem(),
+            ]
+        ]);
     }
 
     public function store(Request $request)
@@ -65,13 +80,26 @@ class RoomController extends Controller
         return response()->json(null, 204);
     }
 
-    public function getByBuilding($buildingId)
+    public function getByBuilding(Request $request, $buildingId)
     {
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
         $rooms = Room::where('building_id', $buildingId)
             ->with(['roomType', 'currentContract.tenant'])
-            ->get();
-        
-        return response()->json($rooms);
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $rooms->items(),
+            'pagination' => [
+                'current_page' => $rooms->currentPage(),
+                'per_page' => $rooms->perPage(),
+                'total' => $rooms->total(),
+                'last_page' => $rooms->lastPage(),
+                'from' => $rooms->firstItem(),
+                'to' => $rooms->lastItem(),
+            ]
+        ]);
     }
 
     public function updateStatus(Request $request, Room $room)
