@@ -8,58 +8,58 @@ use LaravelDaily\Invoices\Classes\Party;
 use LaravelDaily\Invoices\Classes\InvoiceItem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use App\Services\BakongService;
+use App\Models\Payment;
 
 class ReceiptService
 {
-    /**
-     * Generate a receipt PDF with optional Bakong KHQR QR code.
-     *
-     * @param array $data Receipt data including 'qr_base64' from Python microservice
-     * @return \LaravelDaily\Invoices\Invoice
-     */
-    public static function generate(array $data)
+    public static function generate($payment_id)
     {
         try {
+
+            $payload = self::e_receipt_format($payment_id);
+
             // Seller / Landlord
-           $landlord = new Party([
-                'name'          => $data['landlord_name'] ?? 'Lomnov Real Estate',
-                'address'       => $data['landlord_address'] ?? 'Phnom Penh, Cambodia',
-                'phone'         => $data['landlord_phone'] ?? null,
-                'custom_fields' => $data['landlord_custom_fields'] ?? [],
+            $landlord = new Party([
+                'name'          => $payload['landlord_name'] ?? 'Lomnov Real Estate',
+                'address'       => $payload['landlord_address'] ?? 'Phnom Penh, Cambodia',
+                'phone'         => $payload['landlord_phone'] ?? null,
+                'custom_fields' => [
+                    'Email' => $payload['landlord_email'] ?? null,
+                    'Building' => $payload['landlord_building'] ?? null,
+                ],
             ]);
 
             // Buyer / Tenant
             $tenant = new Buyer([
-                'name' => $data['tenant_name'],
-                'address' => $data['building_name'] . ', Room ' . $data['room_name'],
+                'name' => $payload['tenant_name'],
+                'address' => ($payload['tenant_room'] ?? '') . ' - Floor ' . ($payload['tenant_room_floor'] ?? ''),
                 'custom_fields' => [
-                    'Building' => $data['building_name'] ?? '',
-                    'Room' => $data['room_name'] ?? '',
+                    'Room' => $payload['tenant_room'] ?? '',
+                    'Floor' => $payload['tenant_room_floor'] ?? '',
                 ],
             ]);
 
-            // Readings
-            $readingsInfo = collect($data['readings'] ?? [])->map(function ($r) {
+            // Readings (optional)
+            $readingsInfo = collect($payload['readings'] ?? [])->map(function ($r) {
                 return [
-                    'item' => $r['item'],
-                    'new' => $r['new'],
-                    'old' => $r['old'],
-                    'total' => $r['total'],
+                    'item' => $r['item'] ?? '',
+                    'new' => $r['new'] ?? 0,
+                    'old' => $r['old'] ?? 0,
+                    'total' => $r['total'] ?? 0,
                     'unit' => $r['unit'] ?? ''
                 ];
             });
 
             // Items
-            $items = collect($data['items'] ?? [])->map(function ($item) {
+            $items = collect($payload['items'] ?? [])->map(function ($item) {
                 return (new InvoiceItem())
                     ->title($item['name'])
                     ->pricePerUnit($item['price'])
                     ->quantity($item['quantity']);
             });
 
-            $merchant = self::normalizeMerchantData($data);
-
-            // Create invoice first to get total_amount
+            // Create invoice to calculate total
             $invoice = Invoice::make()
                 ->name('RENT RECEIPT')
                 ->seller($landlord)
@@ -70,50 +70,47 @@ class ReceiptService
                 ->currencyCode('USD')
                 ->date(now())
                 ->addItems($items->toArray())
-                ->notes('Thank you for your rent payment. Please pay by the due date.');
+                ->notes('Thank you for your rent payment.');
 
             $totalAmount = $invoice->calculate()->total_amount;
-            
+
             Log::info('Invoice total calculated', [
                 'total_amount' => $totalAmount,
-                'has_qr' => isset($data['qr_base64'])
+                'has_qr' => isset($payload['qr_base64'])
             ]);
 
-            // Get QR code from microservice if not provided
-            $qrBase64 = $data['qr_base64'] ?? null;
+            // Request KHQR only if generate_qr is true
+            $qrBase64 = null;
+            if (!empty($payload['generate_qr'])) {
+                $bakong_payload = self::requestBakongQR($totalAmount);
 
-            if (!$qrBase64 || !self::isValidBase64Image($qrBase64)) {
+                $bakongData = is_object($bakong_payload)
+                    ? $bakong_payload->getData(true)
+                    : $bakong_payload;
+
+                $qrcode = $bakongData['data']['qr_code'] ?? null;
+
+                // Get QR from microservice if not provided
                 $qrBase64 = self::fetchQRFromMicroservice([
-                    'merchant_account' => $merchant['account'],
-                    'merchant_name'    => $merchant['name'],
-                    'merchant_city'    => $merchant['city'],
-                    'amount'           => $totalAmount ?? 0,
-                    'reference'        => $merchant['reference'],
-                    'currency'         => $merchant['currency'],
-                    'store_label'      => $merchant['store_label'],
-                    'phone_number'     => $merchant['phone_number'],
-                    'terminal_label'   => $merchant['terminal_label'],
-                    'static'           => $merchant['static'],
+                    "qr_code" => $qrcode
                 ]);
             }
 
-            // Custom data including Bakong QR
-            $customData = [
+            // Invoice custom data
+            $invoice->setCustomData([
                 'readings' => $readingsInfo,
                 'bakong_data' => [
-                    'amount' => $invoice->total_amount,
+                    'amount' => $totalAmount,
                     'currency' => 'USD',
-                    'recipient' => 'Lomnov Real Estate',
-                    'account' => $data['merchant_account'] ?? 'lomnov@aba',
-                    'reference' => $data['reference'] ?? 'N/A',
-                    'description' => 'Rent Payment - ' . ($data['reference'] ?? 'N/A'),
+                    'recipient' => $payload['landlord_name'] ?? 'Lomnov Real Estate',
+                    'account' => $payload['merchant_account'] ?? 'lomnov@aba',
+                    'reference' => $payload['reference'] ?? 'PAY-' . $payload['id'],
+                    'description' => 'Rent Payment - ' . ($payload['reference'] ?? 'PAY-' . $payload['id']),
                     'qr_base64' => $qrBase64,
                 ],
-            ];
+            ]);
 
-            $invoice->setCustomData($customData);
-
-            // Save invoice
+            // Save PDF
             $invoice->save('invoices');
 
             return $invoice;
@@ -127,19 +124,104 @@ class ReceiptService
         }
     }
 
-    private static function normalizeMerchantData(array $data): array
-    {
+    public function e_receipt_format_test($payment_id){
+        $payment = Payment::find($payment_id);
+
+        if(!$payment){
+            throw new \Exception("Payment not found");
+        }
+
+        $tenant_info = $payment->tenant;
+        $landlord_info = $payment->landlord;
+
+        $room_info = $payment->room;
+
+        $building_info = $room_info->building;
+
+        $payment_items = $payment->paymentItems;
+
+        $items = [];
+
+        foreach($payment_items as $item){
+            $service = $item->service;
+            $items[] = [
+                "name" => $service->name,
+                "price" => $item->unit_price,
+                "quantity" => $item->quantity
+            ];
+        };
+
         return [
-            'account'       => $data['merchant_account'],
-            'name'          => $data['merchant_name'] ?? 'Lomnov Real Estate',
-            'city'          => $data['merchant_city'] ?? 'Phnom Penh',
-            'currency'      => $data['currency'] ?? 'USD',
-            'store_label'   => $data['store_label'] ?? 'Lomnov Store',
-            'phone_number'  => $data['phone_number'],
-            'terminal_label'=> $data['terminal_label'] ?? 'Rental-01',
-            'static'        => $data['static'] ?? false,
-            'reference'     => $data['reference'] ?? ('RENT-' . time()),
+            "id" => $payment->id,
+            "landlord_name" => $landlord_info->name,
+            "landlord_email" => $landlord_info->email,
+            "landlord_phone" => $landlord_info->phonenumber,
+            "landlord_address" => $building_info->address,
+            "landlord_building" => $building_info->name,
+
+            "tenant_name" => $tenant_info->name,
+            "tenant_email" => $tenant_info->email,
+            "tenant_phone" => $tenant_info->phonenumber,
+            "tenant_room" => $room_info->room_number,
+            "tenant_room_floor" => $room_info->floor,
+
+            "items" => $items,
+
+            "generate_qr" => true,
         ];
+    }
+
+    protected static function e_receipt_format($payment_id){
+        $payment = Payment::find($payment_id);
+
+        if(!$payment){
+            throw new \Exception("Payment not found");
+        }
+
+        $tenant_info = $payment->tenant;
+        $landlord_info = $payment->landlord;
+
+        $room_info = $payment->room;
+
+        $building_info = $room_info->building;
+
+        $payment_items = $payment->paymentItems;
+
+        $items = [];
+
+        foreach($payment_items as $item){
+            $service = $item->service;
+            $items[] = [
+                "name" => $service->name,
+                "price" => $item->unit_price,
+                "quantity" => $item->quantity
+            ];
+        };
+
+        return [
+            "id" => $payment->id,
+            "landlord_name" => $landlord_info->name,
+            "landlord_email" => $landlord_info->email,
+            "landlord_phone" => $landlord_info->phonenumber,
+            "landlord_address" => $building_info->address,
+            "landlord_building" => $building_info->name,
+
+            "tenant_name" => $tenant_info->name,
+            "tenant_email" => $tenant_info->email,
+            "tenant_phone" => $tenant_info->phonenumber,
+            "tenant_room" => $room_info->room_number,
+            "tenant_room_floor" => $room_info->floor,
+
+            "items" => $items,
+
+            "generate_qr" => true,
+        ];
+    }
+
+    protected static function requestBakongQR($amount)
+    {
+        $bakongService = new BakongService();
+        return $bakongService->generateKHQR($amount);
     }
 
     /**
@@ -154,16 +236,7 @@ class ReceiptService
             $microserviceUrl = config('services.qr_microservice.url', 'http://localhost:5001');
             
             $requestBody = [
-                'merchant_account' => $qrData['merchant_account'],
-                'merchant_name' => $qrData['merchant_name'] ?? 'Lomnov Real Estate',
-                'merchant_city' => $qrData['merchant_city'] ?? 'Phnom Penh',
-                'amount' => $qrData['amount'],
-                'reference' => $qrData['reference'],
-                'currency' => $qrData['currency'],
-                'store_label' => $qrData['store_label'] ?? 'Lomnov Store',
-                'phone_number' => $qrData['phone_number'] ?? '85512345678',
-                'terminal_label' => $qrData['terminal_label'] ?? 'Rental-01',
-                'static' => $qrData['static'] ?? false,
+                'qr_code' => $qrData['qr_code'] ?? ''
             ];
             
             // Add this logging to see what's being sent
