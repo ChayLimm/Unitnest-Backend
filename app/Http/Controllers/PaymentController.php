@@ -103,6 +103,9 @@ class PaymentController extends Controller
 
         $room_id = $request->input('room_id');
         $consumptions = $request->input('consumptions');
+
+        $penalty = $request->input('penalty');
+        $lastPayment = $request->input('lastPayment');
        
         $consumptionModels = [];
         foreach ($consumptions as $data) {
@@ -111,7 +114,7 @@ class PaymentController extends Controller
         Log::info(("calling payment service"));
         $payment_service = new PaymentService($room_id,);
         // $consumptions = Consumption::all();
-        $response = $payment_service->processPayment(...$consumptionModels);
+        $response = $payment_service->processPayment($lastPayment,$penalty,...$consumptionModels);
         
         return response()->json($response);
 
