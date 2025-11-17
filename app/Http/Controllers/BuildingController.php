@@ -7,10 +7,25 @@ use Illuminate\Http\Request;
 
 class BuildingController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $buildings = Building::with(['landlord', 'rooms'])->get();
-        return response()->json($buildings);
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
+        $buildings = Building::with(['landlord', 'rooms'])
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $buildings->items(),
+            'pagination' => [
+                'current_page' => $buildings->currentPage(),
+                'per_page' => $buildings->perPage(),
+                'total' => $buildings->total(),
+                'last_page' => $buildings->lastPage(),
+                'from' => $buildings->firstItem(),
+                'to' => $buildings->lastItem(),
+            ]
+        ]);
     }
 
     public function store(Request $request)
@@ -57,12 +72,25 @@ class BuildingController extends Controller
         return response()->json(null, 204);
     }
 
-    public function getByLandlord($landlordId)
+    public function getByLandlord(Request $request, $landlordId)
     {
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
         $buildings = Building::where('landlord_id', $landlordId)
             ->with(['rooms', 'rooms.contracts'])
-            ->get();
-        
-        return response()->json($buildings);
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $buildings->items(),
+            'pagination' => [
+                'current_page' => $buildings->currentPage(),
+                'per_page' => $buildings->perPage(),
+                'total' => $buildings->total(),
+                'last_page' => $buildings->lastPage(),
+                'from' => $buildings->firstItem(),
+                'to' => $buildings->lastItem(),
+            ]
+        ]);
     }
 }

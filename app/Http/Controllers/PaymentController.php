@@ -10,17 +10,30 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
         $payments = Payment::with([
             'tenant', 
             'landlord', 
             'transaction', 
             'room.building',
             'paymentItems.service'
-        ])->get();
+        ])->paginate($perPage, ['*'], 'page', $page);
         
-        return response()->json($payments);
+        return response()->json([
+            'data' => $payments->items(),
+            'pagination' => [
+                'current_page' => $payments->currentPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
+                'last_page' => $payments->lastPage(),
+                'from' => $payments->firstItem(),
+                'to' => $payments->lastItem(),
+            ]
+        ]);
     }
 
     public function store(Request $request)
@@ -79,13 +92,26 @@ class PaymentController extends Controller
         return response()->json(null, 204);
     }
 
-    public function getTenantPayments($tenantId)
+    public function getTenantPayments(Request $request, $tenantId)
     {
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
         $payments = Payment::where('tenant_id', $tenantId)
             ->with(['room.building', 'paymentItems.service'])
-            ->get();
+            ->paginate($perPage, ['*'], 'page', $page);
         
-        return response()->json($payments);
+        return response()->json([
+            'data' => $payments->items(),
+            'pagination' => [
+                'current_page' => $payments->currentPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
+                'last_page' => $payments->lastPage(),
+                'from' => $payments->firstItem(),
+                'to' => $payments->lastItem(),
+            ]
+        ]);
     }
 
     public function updateStatus(Request $request, Payment $payment)
