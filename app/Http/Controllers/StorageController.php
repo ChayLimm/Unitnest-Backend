@@ -6,9 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-
 class StorageController extends Controller
 {
     public function imageUrl(Request $request, $id)
@@ -42,14 +39,8 @@ class StorageController extends Controller
 
         $path = $disk->putFileAs('', $file, $filename);
 
-        $disk = Storage::disk('external');
-
-        $path = $disk->putFileAs('', $file, $filename);
-
-        $url = $disk->url($path);
         $url = $disk->url($path);
 
-        Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
         Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
 
         return response()->json([
