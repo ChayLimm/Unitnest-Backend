@@ -9,6 +9,7 @@ use LaravelDaily\Invoices\Classes\InvoiceItem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Services\BakongService;
+use App\Services\ConsumptionService;
 use App\Models\Payment;
 
 class ReceiptService
@@ -59,6 +60,8 @@ class ReceiptService
                     ->quantity($item['quantity']);
             });
 
+            $customSerial = 'receipt_' . $payload['room_id'] . '_' . now()->format('YmdHis');
+
             // Create invoice to calculate total
             $invoice = Invoice::make()
                 ->name('RENT RECEIPT')
@@ -70,7 +73,9 @@ class ReceiptService
                 ->currencyCode('USD')
                 ->date(now())
                 ->addItems($items->toArray())
-                ->notes('Thank you for your rent payment.');
+                ->notes('Thank you for your rent payment.')
+                ->filename($customSerial)
+                ->serialNumberFormat($payload['room_id'] . '_' . now()->format('YmdHis'));
 
             $totalAmount = $invoice->calculate()->total_amount;
 
@@ -141,6 +146,7 @@ class ReceiptService
         $payment_items = $payment->paymentItems;
 
         $items = [];
+        $readingsInfo = [];
 
         foreach($payment_items as $item){
             $service = $item->service;
@@ -150,6 +156,32 @@ class ReceiptService
                 "quantity" => $item->quantity
             ];
         };
+
+        $consumptions = $room_info->consumptions()->orderBy('created_at')->get();
+
+        $consumptionService = new ConsumptionService();
+
+        foreach($consumptions as $cons){
+            $usage = $consumptionService->getConsumptionUsage($room_info->id, $cons->id) ?? $cons->end_reading;
+
+            $previous = $room_info->consumptions()
+                ->where('service_id', $cons->service_id)
+                ->where('created_at', '<', $cons->created_at)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            $readingsInfo[] = [
+                "item" => $cons->service->name,
+                "new" => $cons->end_reading,
+                "old" => $previous ? $previous->end_reading : 0,
+                "total" => $usage,
+                "unit" => $cons->service->unit_name,
+            ];
+
+            Log::info("consumption usage for service {$cons->service_id} is {$usage}");
+        }
+
+        
 
         return [
             "id" => $payment->id,
@@ -166,6 +198,8 @@ class ReceiptService
             "tenant_room_floor" => $room_info->floor,
 
             "items" => $items,
+
+            "readings" => $readingsInfo,
 
             "generate_qr" => true,
         ];
@@ -198,8 +232,36 @@ class ReceiptService
             ];
         };
 
+        $readingsInfo = [];
+
+        $consumptions = $room_info->consumptions()->orderBy('created_at')->get();
+
+        $consumptionService = new ConsumptionService();
+
+        foreach($consumptions as $cons){
+            $usage = $consumptionService->getConsumptionUsage($room_info->id, $cons->id) ?? $cons->end_reading;
+
+            $previous = $room_info->consumptions()
+                ->where('service_id', $cons->service_id)
+                ->where('created_at', '<', $cons->created_at)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            $readingsInfo[] = [
+                "item" => $cons->service->name,
+                "new" => $cons->end_reading,
+                "old" => $previous ? $previous->end_reading : 0,
+                "total" => $usage,
+                "unit" => $cons->service->unit_name,
+            ];
+
+            Log::info("consumption usage for service {$cons->service_id} is {$usage}");
+        }
+
+
         return [
             "id" => $payment->id,
+            "room_id" => $room_info->id,
             "landlord_name" => $landlord_info->name,
             "landlord_email" => $landlord_info->email,
             "landlord_phone" => $landlord_info->phonenumber,
@@ -213,6 +275,8 @@ class ReceiptService
             "tenant_room_floor" => $room_info->floor,
 
             "items" => $items,
+
+            "readings" => $readingsInfo,
 
             "generate_qr" => true,
         ];
