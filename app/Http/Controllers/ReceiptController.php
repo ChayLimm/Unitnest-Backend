@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
 use App\Services\ReceiptService;
 
 class ReceiptController extends Controller
@@ -22,7 +24,7 @@ class ReceiptController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
-}
+    }
 
 
 
@@ -38,5 +40,36 @@ class ReceiptController extends Controller
         $invoice = ReceiptService::generate($validated['payment_id']);
 
         return $invoice->stream();
+    }
+
+    public function getAllReceipts(){
+        try{
+            $files = Storage::disk('invoices')->files();
+            return response()->json(['files' => $files], 200);
+        }catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function previewReceipt($filename){
+
+        if (!Storage::disk('invoices')->exists($filename)) {
+            return response()->json(['error' => 'Receipt not found'], 404);
+        }
+        
+        $file = Storage::disk('invoices')->get($filename);
+
+        return response($file, 200)->header('Content-Type', 'application/pdf');
+    }
+
+    public function destroyReceipt($filename){
+
+        if (Storage::disk('invoices')->exists($filename)) {
+            Storage::disk('invoices')->delete($filename);
+        }else{
+            return response()->json(['error' => 'Receipt not found'], 404);
+        }
+
+        return response()->json(['message' => 'Receipt deleted successfully'], 200);
     }
 }

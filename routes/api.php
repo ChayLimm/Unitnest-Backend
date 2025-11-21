@@ -108,5 +108,7 @@ Route::get('notifications/unread', [NotificationController::class, 'getUnreadNot
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 
 // Receipt PDF
-Route::get('receipts/', [ReceiptController::class, 'generateRentalReceipt']);
-Route::get('receipts/test-receipt', [ReceiptController::class, 'testReceipt']);
+Route::get('receipts', [ReceiptController::class, 'getAllReceipts']);
+Route::post('receipts', [ReceiptController::class, 'generateRentalReceipt']);
+Route::get('receipts/{filename}', [ReceiptController::class, 'previewReceipt']);
+Route::delete('receipts/{filename}', [ReceiptController::class, 'destroyReceipt']);
