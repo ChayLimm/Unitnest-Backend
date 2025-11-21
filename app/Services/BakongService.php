@@ -76,7 +76,12 @@ class BakongService
             $deepLink = $data['shortLink'] ?? null;
 
             $transaction = Transaction::create([
-                'payload' => $data,
+                'payload' => [
+                    'qr' => $qr,
+                    'md5' => $md5,
+                    'amount' => $amount,
+                    'deepLink' => $deepLink,
+                ],
             ]);
 
             DB::commit();
