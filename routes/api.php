@@ -61,8 +61,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::post('/bot', [BotController::class, 'handleAccess']);
 
 // Route::post('/agent', [AgentController::class, 'handleWebhook']);
-Route::post('/agent/{token}', [AgentController::class, 'handleWebhook']);
-Route::post('/agent/webhook/{token}', [AgentController::class, 'setUpWebhook']);
+Route::post('/agent/setup', [AgentController::class, 'setUpWebhook']);  // setting bot (flexible)
+Route::post('/agent/webhook/{token}', [AgentController::class, 'handleWebhook']);   // incoming webhook update 
 
 
 
