@@ -42,13 +42,60 @@ class AgentController extends Controller
         return response()->json($response);
     }
 
-
-    public function setUpWebhook(Request $request, $token)
+    public function setUpWebhook(Request $request)
     {
-        $result = $this->telegramBotService->setWebhook($token);
-        Log::info('Set Webhook Result:', ['result' => $result]);
+        Log::info('=== setUpWebhook METHOD CALLED ===', [
+            'all_data' => $request->all(),
+        ]);
 
-        return response()->json($result);
+        $validated = $request->validate([
+            'token' => 'required|string',
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $token = $validated['token'];
+        $landlordId = $validated['user_id'];
+
+        // Get bot info
+        $botInfo = $this->telegramBotService->getBotInfo($token);
+        $botData = $botInfo['result'] ?? [];
+
+        if (!isset($botInfo['result']['id'])) {
+            return response()->json(['error' => 'Invalid bot token'], 400);
+        }
+
+        try {
+            // save bot to db 
+            $bot = $this->telegramBotService->storeBot($token, $landlordId, $botData);
+
+            // set up webhook
+            $responseWebhook = $this->telegramBotService->setWebhook($token);
+
+            Log::info('Set up Telegram Webhook successfully', [
+                'user_id' => $landlordId,
+                'token' => substr($token, 0, 8),
+                'bot_id' => $bot->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bot registered successfully',
+                'webhook_response' => $responseWebhook,
+                'bot_info' => $botInfo,
+                'bot' => [
+                    'id' => $bot->id,
+                    'token' => $bot->token,
+                    'bot_id' => $bot->bot_id,
+                    'username' => $bot->username,
+                    'user_id' => $bot->user_id,
+                ],
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 409);    // conflict error - already exists
+        }
     }
 
     // hanlde telegram webhook - incoming messages

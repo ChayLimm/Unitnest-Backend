@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Telegrambot;
 
 class TelegramBotService
 {
@@ -45,7 +46,7 @@ class TelegramBotService
     {
         $baseUrl = env('BASE_URL');
         // $baseUrl = config('app.url');
-        $webhookUrl = "{$baseUrl}/api/agent/{$token}";
+        $webhookUrl = "{$baseUrl}/api/agent/webhook/{$token}";
         $botToken = $token;
 
         $response = Http::post("https://api.telegram.org/bot{$botToken}/setWebhook", [
@@ -103,6 +104,39 @@ class TelegramBotService
         } catch (\Exception $e) {
             Log::error("Failed to answer callback: " . $e->getMessage());
         }
+    }
+
+    public function getBotInfo($token)
+    {
+        $url = "https://api.telegram.org/bot{$token}/getMe";
+
+        try {
+            $response = Http::get($url);
+            return $response->json();
+
+        } catch (\Exception $e) {
+            Log::error("Failed to get bot info: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    public function storeBot($token, $userId, $botData)
+    {
+        // Check if bot already exists
+        $existingBot = Telegrambot::where('token', $token)->first();
+        
+        if ($existingBot) {
+            throw new \Exception('Bot with this token is already registered');
+        }
+
+        // Create new bot
+        return Telegrambot::create([
+            'token' => $token,
+            'user_id' => $userId,
+            'bot_id' => $botData['id'] ?? null,
+            'username' => $botData['username'] ?? null,
+            // 'first_name' => $botData['first_name'] ?? null,
+        ]);
     }
 
 
