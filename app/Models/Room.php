@@ -6,6 +6,7 @@ use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use KHQR\Models\Timestamp;
 
 class Room extends Model
 {
@@ -30,26 +31,31 @@ class Room extends Model
 
     public function roomType()
     {
-        return $this->belongsTo(RoomType::class);
+        return $this->hasOne(RoomType::class,'id','room_type_id');
     }
 
     public function contracts()
     {
-        return $this->hasMany(Contract::class);
+        return $this->hasMany(Contract::class,'room_id');
     }
 
     public function consumptions()
     {
-        return $this->hasMany(Consumption::class);
+        return $this->hasMany(Consumption::class,'room_id');
     }
 
     public function payments()
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Payment::class,'room_id');
     }
 
     public function currentContract()
     {
         return $this->hasOne(Contract::class)->where('status', 'active')->latest();
+    }
+
+    public function services()
+    {
+        return $this->belongsToMany(Service::class)->using(RoomService::class)->withPivot(['room_id']);
     }
 }

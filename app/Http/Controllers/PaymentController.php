@@ -3,21 +3,37 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
+use App\Models\Consumption;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
         $payments = Payment::with([
             'tenant', 
             'landlord', 
             'transaction', 
             'room.building',
             'paymentItems.service'
-        ])->get();
+        ])->paginate($perPage, ['*'], 'page', $page);
         
-        return response()->json($payments);
+        return response()->json([
+            'data' => $payments->items(),
+            'pagination' => [
+                'current_page' => $payments->currentPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
+                'last_page' => $payments->lastPage(),
+                'from' => $payments->firstItem(),
+                'to' => $payments->lastItem(),
+            ]
+        ]);
     }
 
     public function store(Request $request)
@@ -30,6 +46,7 @@ class PaymentController extends Controller
             'status' => 'nullable|string|max:50',
             'qr_code' => 'nullable|string|max:255',
             'md5' => 'nullable|string|max:255',
+            'deep_link' => 'nullable|string|max:255',
         ]);
 
         $payment = Payment::create($validated);
@@ -61,6 +78,7 @@ class PaymentController extends Controller
             'status' => 'nullable|string|max:50',
             'qr_code' => 'nullable|string|max:255',
             'md5' => 'nullable|string|max:255',
+            'deep_link' => 'nullable|string|max:255',
         ]);
 
         $payment->update($validated);
@@ -74,13 +92,26 @@ class PaymentController extends Controller
         return response()->json(null, 204);
     }
 
-    public function getTenantPayments($tenantId)
+    public function getTenantPayments(Request $request, $tenantId)
     {
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
         $payments = Payment::where('tenant_id', $tenantId)
             ->with(['room.building', 'paymentItems.service'])
-            ->get();
+            ->paginate($perPage, ['*'], 'page', $page);
         
-        return response()->json($payments);
+        return response()->json([
+            'data' => $payments->items(),
+            'pagination' => [
+                'current_page' => $payments->currentPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
+                'last_page' => $payments->lastPage(),
+                'from' => $payments->firstItem(),
+                'to' => $payments->lastItem(),
+            ]
+        ]);
     }
 
     public function updateStatus(Request $request, Payment $payment)
@@ -92,5 +123,26 @@ class PaymentController extends Controller
         $payment->update($validated);
 
         return response()->json($payment);
+    }
+
+    public function processPayment(Request $request)  {
+
+        $room_id = $request->input('room_id');
+        $consumptions = $request->input('consumptions');
+
+        $penalty = $request->input('penalty');
+        $lastPayment = $request->input('lastPayment');
+       
+        $consumptionModels = [];
+        foreach ($consumptions as $data) {
+            $consumptionModels[] = new Consumption($data);
+        }
+        Log::info(("calling payment service"));
+        $payment_service = new PaymentService($room_id,);
+        // $consumptions = Consumption::all();
+        $response = $payment_service->processPayment($lastPayment,$penalty,...$consumptionModels);
+        
+        return response()->json($response);
+
     }
 }

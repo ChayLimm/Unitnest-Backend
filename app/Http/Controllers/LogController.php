@@ -4,133 +4,140 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class LogController extends Controller
 {
     public function index()
     {
-        $today = Carbon::today()->format('Y-m-d');
-        $logFiles = $this->getLogFiles();
-        $todayLogs = $this->getTodayLogs();
-        
-        return view('logs.index', compact('todayLogs', 'today', 'logFiles'));
-    }
+        $logFile = storage_path('logs/laravel.log');
+        $logEntries = [];
+        $stats = [
+            'total' => 0,
+            'errors' => 0,
+            'warnings' => 0,
+            'others' => 0
+        ];
 
-    public function show($date = null)
-    {
-        $date = $date ?: Carbon::today()->format('Y-m-d');
-        $logFiles = $this->getLogFiles();
-        $todayLogs = $this->getTodayLogs($date);
-        
-        return view('logs.index', compact('todayLogs', 'today', 'logFiles'));
-    }
+        if (File::exists($logFile)) {
+            $logContent = File::get($logFile);
+            $lines = explode("\n", $logContent);
+            
+            // Reverse to get latest first, then take the last 200 lines
+            $lines = array_reverse($lines);
+            $lines = array_slice($lines, 0, 200);
+            $lines = array_reverse($lines);
 
-    private function getLogFiles()
-    {
-        $logPath = storage_path('logs');
-        $files = File::files($logPath);
-        
-        $logFiles = [];
-        foreach ($files as $file) {
-            if (pathinfo($file, PATHINFO_EXTENSION) === 'log') {
-                $logFiles[] = [
-                    'name' => $file->getFilename(),
-                    'size' => $this->formatBytes($file->getSize()),
-                    'modified' => Carbon::createFromTimestamp($file->getMTime())->format('Y-m-d H:i:s')
-                ];
-            }
-        }
-        
-        // Sort log files by modification date (newest first)
-        usort($logFiles, function($a, $b) {
-            return strtotime($b['modified']) - strtotime($a['modified']);
-        });
-        
-        return $logFiles;
-    }
-
-    private function getTodayLogs($date = null)
-    {
-        $date = $date ?: Carbon::today()->format('Y-m-d');
-        $logPath = storage_path('logs');
-        $files = File::files($logPath);
-        
-        $todayLogs = [];
-        $targetDate = Carbon::parse($date)->format('Y-m-d');
-        
-        foreach ($files as $file) {
-            if (pathinfo($file, PATHINFO_EXTENSION) === 'log') {
-                $content = File::get($file);
-                $lines = explode("\n", $content);
-                
-                foreach ($lines as $line) {
-                    if (!empty(trim($line))) {
-                        // Extract date from log line (assuming standard Laravel format)
-                        if (preg_match('/\[(\d{4}-\d{2}-\d{2})/', $line, $matches)) {
-                            $logDate = $matches[1];
-                            if ($logDate === $targetDate) {
-                                $todayLogs[] = [
-                                    'file' => $file->getFilename(),
-                                    'line' => $line,
-                                    'timestamp' => $this->extractTimestamp($line),
-                                    'level' => $this->extractLogLevel($line),
-                                    'sort_key' => $this->extractSortableTimestamp($line)
-                                ];
-                            }
-                        }
+            $currentEntry = '';
+            
+            foreach ($lines as $line) {
+                if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})].*?\.(\w+):/', $line, $matches)) {
+                    // If we have a previous entry, process it
+                    if (!empty($currentEntry)) {
+                        $logEntries[] = $this->parseLogEntry($currentEntry);
+                        $currentEntry = '';
                     }
+                }
+                $currentEntry .= $line . "\n";
+            }
+            
+            // Don't forget the last entry
+            if (!empty($currentEntry)) {
+                $logEntries[] = $this->parseLogEntry($currentEntry);
+            }
+
+            // Reverse to show latest first
+            $logEntries = array_reverse($logEntries);
+
+            // Calculate stats
+            foreach ($logEntries as $entry) {
+                $stats['total']++;
+                switch ($entry['level']) {
+                    case 'error':
+                        $stats['errors']++;
+                        break;
+                    case 'warning':
+                        $stats['warnings']++;
+                        break;
+                    default:
+                        $stats['others']++;
+                        break;
                 }
             }
         }
-        
-        // Sort logs by timestamp in descending order (newest first)
-        usort($todayLogs, function($a, $b) {
-            return strcmp($b['sort_key'], $a['sort_key']);
-        });
-        
-        return $todayLogs;
+
+        return view('logs.index', compact('logEntries', 'stats'));
     }
 
-    private function extractTimestamp($line)
+    private function parseLogEntry($entry)
     {
-        if (preg_match('/\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/', $line, $matches)) {
-            return $matches[1];
+        $timestamp = '';
+        $level = 'info';
+        $content = $entry;
+
+        // Extract timestamp and level
+        if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})].*?\.(\w+):/', $entry, $matches)) {
+            $timestamp = $matches[1];
+            $level = strtolower($matches[2]);
+            $content = preg_replace('/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}].*?\.\w+:/', '', $entry);
+            $content = trim($content);
         }
-        return '';
+
+        // Highlight errors and warnings
+        $highlightedContent = $this->highlightLogContent($content, $level);
+
+        return [
+            'timestamp' => $timestamp,
+            'level' => $level,
+            'content' => $content,
+            'highlighted_content' => $highlightedContent,
+            'level_class' => 'log-' . $level
+        ];
     }
 
-    private function extractSortableTimestamp($line)
+    private function highlightLogContent($content, $level)
     {
-        if (preg_match('/\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/', $line, $matches)) {
-            return $matches[1];
+        // Convert to HTML entities for safety
+        $content = htmlspecialchars($content);
+
+        // Highlight specific patterns
+        $patterns = [
+            '/Stack trace:/' => '<span class="text-red-600 font-bold">Stack trace:</span>',
+            '/Exception:/' => '<span class="text-red-600 font-bold">Exception:</span>',
+            '/Error:/' => '<span class="text-red-600 font-bold">Error:</span>',
+            '/Warning:/' => '<span class="text-yellow-600 font-bold">Warning:</span>',
+            '/Notice:/' => '<span class="text-blue-600 font-bold">Notice:</span>',
+        ];
+
+        foreach ($patterns as $pattern => $replacement) {
+            $content = preg_replace($pattern, $replacement, $content);
         }
-        return '0000-00-00 00:00:00';
+
+        // Highlight file paths
+        $content = preg_replace(
+            '/(\/[a-zA-Z0-9_\-\.\/]+\.php)(:\d+)/',
+            '<span class="text-purple-600 font-mono">$1</span><span class="text-green-600 font-mono">$2</span>',
+            $content
+        );
+
+        // Highlight URLs
+        $content = preg_replace(
+            '/(https?:\/\/[^\s]+)/',
+            '<span class="text-blue-500 underline">$1</span>',
+            $content
+        );
+
+        return nl2br($content);
     }
 
-    private function extractLogLevel($line)
+    public function clearLogs()
     {
-        $levels = ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY'];
+        $logFile = storage_path('logs/laravel.log');
         
-        foreach ($levels as $level) {
-            if (strpos($line, ".{$level}:") !== false) {
-                return $level;
-            }
+        if (File::exists($logFile)) {
+            File::put($logFile, '');
         }
-        
-        return 'UNKNOWN';
-    }
 
-    private function formatBytes($bytes, $precision = 2)
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-        
-        $bytes /= pow(1024, $pow);
-        
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        return response()->json(['success' => true]);
     }
 }

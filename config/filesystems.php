@@ -44,6 +44,21 @@ return [
             'throw' => false,
         ],
 
+        'invoices' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/invoices'),
+            'url' => env('APP_URL').'/storage/invoices',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
+        'external' => [
+            'driver' => 'local',
+            'root' => env('EXTERNAL_STORAGE_PATH'),
+            'url' => env('PUBLIC_APP_URL') . '/api/images',
+            'visibility' => 'public',
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

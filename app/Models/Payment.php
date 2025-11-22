@@ -19,8 +19,10 @@ class Payment extends Model
         'room_id',
         'status',
         'qr_code',
+        'deep_link',
         'md5',
     ];
+ 
 
     // Relationships
     public function tenant()
@@ -45,7 +47,7 @@ class Payment extends Model
 
     public function paymentItems()
     {
-        return $this->hasMany(PaymentItem::class);
+        return $this->hasMany(PaymentItem::class,'payment_id');
     }
 
     public function notifications()
