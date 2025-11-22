@@ -13,9 +13,10 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $request->validate([
-            'building_id' => 'nullable|integer|exists:buildings,id'
+            'building_id' => 'nullable|integer|exists:buildings,id',
+            'month' => 'nullable|date_format:Y-m-d'
         ]);
-        $report = $this->reportService->getMonthlyReport($request->input('building_id'));
+        $report = $this->reportService->getMonthlyReport($request->input('building_id'), $request->input('month'));
 
         return response()->json($report);
     }
