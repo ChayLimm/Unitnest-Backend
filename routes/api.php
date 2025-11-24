@@ -28,6 +28,8 @@ use App\Http\Controllers\BakongController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\TelegramBotController;
+use App\Http\Controllers\ReportController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -108,7 +110,14 @@ Route::get('notifications/unread', [NotificationController::class, 'getUnreadNot
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 
 // Receipt PDF
+
+
+// Report API
+Route::get('/reports', [ReportController::class, 'index']);
+Route::get('/reports/unpaid-rooms', [ReportController::class, 'unpaidRooms']);
+Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
+// reciept PDF
 Route::get('receipts', [ReceiptController::class, 'getAllReceipts']);
-Route::post('receipts', [ReceiptController::class, 'generateRentalReceipt']);
+Route::post('receipts', [ReceiptController::class, 'generateRentalReceipt']
 Route::get('receipts/{filename}', [ReceiptController::class, 'previewReceipt']);
 Route::delete('receipts/{filename}', [ReceiptController::class, 'destroyReceipt']);
