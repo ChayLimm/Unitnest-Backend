@@ -107,6 +107,11 @@ Route::patch('notifications/{notification}/read', [NotificationController::class
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 
+// Report API
+Route::get('/reports', [ReportController::class, 'index']);
+Route::get('/reports/unpaid-rooms', [ReportController::class, 'unpaidRooms']);
+Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
+
 // Receipt PDF
 Route::get('receipts', [ReceiptController::class, 'getAllReceipts']);
 Route::post('receipts', [ReceiptController::class, 'generateRentalReceipt']);
