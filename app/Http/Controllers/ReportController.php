@@ -37,3 +37,4 @@ class ReportController extends Controller
         return response()->json(['message' => 'Report export initiated. You will be notified once it is ready.']);
     }
 }
+
