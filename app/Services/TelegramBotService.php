@@ -139,5 +139,42 @@ class TelegramBotService
         ]);
     }
 
+    // handle set up bot
+    public function setUpBot($token, $landlordId){
+
+        // Get bot info
+        $botInfo = $this->getBotInfo($token);
+        $botData = $botInfo['result'] ?? [];
+
+        if (!isset($botInfo['result']['id'])) {
+            throw new \Exception('Invalid bot token');
+        }
+
+        // Save bot to db 
+        $bot = $this->storeBot($token, $landlordId, $botData);
+
+        // Set up webhook
+        $responseWebhook = $this->setWebhook($token);
+
+        Log::info('Set up Telegram Webhook successfully', [
+            'user_id' => $landlordId,
+            'token' => substr($token, 0, 8),
+            'bot_id' => $bot->id,
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'Bot registered successfully',
+            'webhook_response' => $responseWebhook,
+            'bot_info' => $botInfo,
+            'bot' => [
+                'id' => $bot->id,
+                'token' => $bot->token,
+                'bot_id' => $bot->bot_id,
+                'username' => $bot->username,
+                'user_id' => $bot->user_id,
+            ],
+        ];
+    }
 
 }
