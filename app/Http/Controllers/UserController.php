@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\UserRegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
@@ -69,5 +70,10 @@ class UserController extends Controller
         $user->restore();
 
         return response()->json($user);
+    }
+
+    public function register(Request $request, UserRegistrationService $service){ 
+        $response = $service->register($request->all());
+        return $response;
     }
 }

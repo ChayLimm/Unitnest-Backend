@@ -3,12 +3,23 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Receipt;
 use Illuminate\Support\Facades\Storage;
 
 use App\Services\ReceiptService;
 
 class ReceiptController extends Controller
 {
+    public function index(){
+        return response()->json(['message' => 'Receipt Controller is working!'], 200);
+    }
+
+    public function show()
+    {
+        $receipts = Receipt::with('payment')->get();
+        return response()->json($receipts);
+    }
+
     public function testReceipt(Request $request)
     {
         try{

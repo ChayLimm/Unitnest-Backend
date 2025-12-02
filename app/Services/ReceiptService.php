@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Http;
 use App\Services\BakongService;
 use App\Services\ConsumptionService;
 use App\Models\Payment;
+use App\Models\Receipt;
 
 class ReceiptService
 {
@@ -60,7 +61,7 @@ class ReceiptService
                     ->quantity($item['quantity']);
             });
 
-            $customSerial = 'receipt_' . $payload['room_id'] . '_' . now()->format('YmdHis');
+            $customName = 'receipt_' . $payload['room_id'] . '_' . now()->format('YmdHis');
 
             // Create invoice to calculate total
             $invoice = Invoice::make()
@@ -74,7 +75,7 @@ class ReceiptService
                 ->date(now())
                 ->addItems($items->toArray())
                 ->notes('Thank you for your rent payment.')
-                ->filename($customSerial)
+                ->filename($customName)
                 ->serialNumberFormat($payload['room_id'] . '_' . now()->format('YmdHis'));
 
             $totalAmount = $invoice->calculate()->total_amount;
@@ -113,6 +114,11 @@ class ReceiptService
                     'description' => 'Rent Payment - ' . ($payload['reference'] ?? 'PAY-' . $payload['id']),
                     'qr_base64' => $qrBase64,
                 ],
+            ]);
+
+            Receipt::create([
+                'receipt_name' => $customName . '.pdf',
+                'payment_id' => $payment_id,
             ]);
 
             // Save PDF

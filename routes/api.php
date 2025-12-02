@@ -118,3 +118,9 @@ Route::get('receipts', [ReceiptController::class, 'getAllReceipts']);
 Route::post('receipts', [ReceiptController::class, 'generateRentalReceipt']);
 Route::get('receipts/{filename}', [ReceiptController::class, 'previewReceipt']);
 Route::delete('receipts/{filename}', [ReceiptController::class, 'destroyReceipt']);
+
+// Receipt API
+// Route::get('receipts', [ReceiptController::class, 'show']);
+
+// Register
+Route::post('users/register', [UserController::class, 'register']);
