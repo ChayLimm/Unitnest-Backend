@@ -27,6 +27,13 @@ class BakongService
         $this->bakong_mobile_number = config('bakong.mobile_number');
     }
 
+    public function setBakongAccount(array $accountInfo){
+        $this->bakong_account = $accountInfo['bakong_account'] ?? $this->bakong_account;
+        $this->bakong_merchant_name = $accountInfo['bakong_merchant_name'] ?? $this->bakong_merchant_name;
+        $this->bakong_merchant_city = $accountInfo['bakong_merchant_city'] ?? $this->bakong_merchant_city;
+        $this->bakong_mobile_number = $accountInfo['bakong_mobile_number'] ?? $this->bakong_mobile_number;
+    }
+
     public function generateKHQR(float $amount)
     {
         DB::beginTransaction();

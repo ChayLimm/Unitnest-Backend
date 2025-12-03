@@ -114,13 +114,13 @@ Route::get('/reports/unpaid-rooms', [ReportController::class, 'unpaidRooms']);
 Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
 
 // Receipt PDF
-Route::get('receipts', [ReceiptController::class, 'getAllReceipts']);
+Route::get('receipts', [ReceiptController::class, 'index']);
+Route::get('receipts/files/list', [ReceiptController::class, 'getAllReceiptsFromDisk']);
 Route::post('receipts', [ReceiptController::class, 'generateRentalReceipt']);
 Route::get('receipts/{filename}', [ReceiptController::class, 'previewReceipt']);
+Route::get('receipts/download/{filename}', [ReceiptController::class, 'downloadReceipt']);
 Route::delete('receipts/{filename}', [ReceiptController::class, 'destroyReceipt']);
-
-// Receipt API
-// Route::get('receipts', [ReceiptController::class, 'show']);
+Route::post('receipts/restore/{id}', [ReceiptController::class, 'restoreReceipt']);
 
 // Register
 Route::post('users/register', [UserController::class, 'register']);
