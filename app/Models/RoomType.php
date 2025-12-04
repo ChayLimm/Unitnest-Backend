@@ -20,6 +20,6 @@ class RoomType extends Model
     // Relationships
     public function rooms()
     {
-        return $this->belongsToMany(Room::class);
+        return $this->hasMany(Room::class, 'room_type_id');
     }
 }
