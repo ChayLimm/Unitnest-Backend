@@ -112,4 +112,18 @@ class RoomController extends Controller
 
         return response()->json($room);
     }
+    public function roomsService($roomId)
+    {
+        $room = Room::with('services')->find($roomId);
+        
+        if (!$room) {
+            return response()->json([
+                'message' => 'Room not found'
+            ], 404);
+        }
+        
+        return response()->json([
+            'data' => $room->services
+        ]);
+    }
 }

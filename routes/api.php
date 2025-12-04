@@ -107,6 +107,7 @@ Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, '
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
+Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
 
 // Report API
 Route::get('/reports', [ReportController::class, 'index']);

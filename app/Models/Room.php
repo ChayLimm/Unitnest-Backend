@@ -56,6 +56,7 @@ class Room extends Model
 
     public function services()
     {
-        return $this->belongsToMany(Service::class)->using(RoomService::class)->withPivot(['room_id']);
+        return $this->belongsToMany(Service::class, 'room_service')
+            ->using(RoomService::class);
     }
 }
