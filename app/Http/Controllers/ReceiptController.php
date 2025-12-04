@@ -2,42 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Receipt;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 use App\Services\ReceiptService;
 
 class ReceiptController extends Controller
 {
-    public function index(){
-        return response()->json(['message' => 'Receipt Controller is working!'], 200);
-    }
-
-    public function show()
+    public function index()
     {
-        $receipts = Receipt::with('payment')->get();
+        $receipts = Receipt::paginate(15);
         return response()->json($receipts);
     }
-
-    public function testReceipt(Request $request)
-    {
-        try{
-            $validated = $request->validate([
-                'payment_id' => 'required|exists:payments,id',
-            ]);
-
-            $receipt_service = new ReceiptService();
-
-            $invoice_info = $receipt_service->e_receipt_format_test($validated['payment_id']);
-
-            return response()->json($invoice_info);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-
 
     /**
      * Generate receipt for a specific rental payment
@@ -53,7 +32,7 @@ class ReceiptController extends Controller
         return $invoice->stream();
     }
 
-    public function getAllReceipts(){
+    public function getAllReceiptsFromDisk(){
         try{
             $files = Storage::disk('invoices')->files();
             return response()->json(['files' => $files], 200);
@@ -73,14 +52,52 @@ class ReceiptController extends Controller
         return response($file, 200)->header('Content-Type', 'application/pdf');
     }
 
+    public function downloadReceipt($filename){
+        if (!Storage::disk('invoices')->exists($filename)) {
+            return response()->json(['error' => 'Receipt not found'], 404);
+        }
+
+        return Storage::disk('invoices')->download($filename);
+    }
+
     public function destroyReceipt($filename){
+        $receipt = Receipt::where('receipt_name', $filename)->first();
+        
+        if (!$receipt) {
+            return response()->json(['error' => 'Receipt not found'], 404);
+        }
 
         if (Storage::disk('invoices')->exists($filename)) {
-            Storage::disk('invoices')->delete($filename);
+            Storage::disk('invoices')->move($filename, 'trash/'.$filename);
         }else{
             return response()->json(['error' => 'Receipt not found'], 404);
         }
 
+        // Soft delete the DB record
+        $receipt->delete();
+
         return response()->json(['message' => 'Receipt deleted successfully'], 200);
     }
+
+    public function restoreReceipt($filename)
+    {
+        $receipt = Receipt::withTrashed()->where('receipt_name', $filename)->first();
+
+        if (!$receipt) {
+            return response()->json(['error' => 'Receipt not found in trash'], 404);
+        }
+
+        // Restore file from trash if exists.
+        if (Storage::disk('invoices')->exists("trash/$filename")) {
+            Storage::disk('invoices')->move("trash/$filename", $filename);
+        } else {
+            Log::warning("Receipt file $filename not found in trash during restoration.");
+        }
+
+        // Restore DB record
+        $receipt->restore();
+
+        return response()->json(['message' => 'Receipt restored successfully'], 200);
+    }
+
 }
