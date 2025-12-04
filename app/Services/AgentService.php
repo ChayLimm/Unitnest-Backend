@@ -6,21 +6,27 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\GeminiService;
 use App\Services\TelegramBotService;
+use App\Services\FormService;
 use App\Models\User;
 use App\Models\Telegrambot;
 use App\Models\Setting;
 use App\Models\Building;
 use App\Models\Room;
+use App\Models\Notification;
+Use App\Enums\NotificationType;
+use App\Enums\NotificationStatus;
 
 class AgentService
 {
     protected $geminiService;
     protected $telegramBotService;
+    protected $formService;
 
-    public function __construct(GeminiService $geminiService, TelegramBotService $telegramBotService)
+    public function __construct(GeminiService $geminiService, TelegramBotService $telegramBotService, FormService $formService)
     {
         $this->geminiService = $geminiService;
         $this->telegramBotService = $telegramBotService;
+        $this->formService = $formService;
     }
 
     // ============ Handle Messages ============
@@ -141,7 +147,6 @@ class AgentService
 
     // ============ Business Logic ============
     private function getGeneralRule($landlordId, $chatId){
-        
         // query settings table for general_rules by user_id
         $generalRule = null;
         if ($landlordId) {
@@ -166,7 +171,6 @@ class AgentService
     }
 
     private function getContractRule($landlordId, $chatId){
-        
         // query settings table for contract_rules by user_id
         $contractRule = null;
         if ($landlordId) {
@@ -190,7 +194,6 @@ class AgentService
     }
 
     private function getAvailableRoom($landlordId, $chatId){
-        
         // user (id) -> buidling (landlord_id-fk, id-pk) -> rooms (building_id-fk, status-available)
         $availableRooms = [];
         $buildings = Building::where('landlord_id', $landlordId)->get();
@@ -216,18 +219,59 @@ class AgentService
 
     private function getRegistration($landlordId, $chatId){
 
-        // mock
+        //
+        $header = "📝 Registration Process\n" . "Please fill out the registration form here:\n";
+        $footer = "We'll notify your landlord after you submit 😊";
+        $seperator = "━━━━━━━━━━━━━━━━━━━━\n";
+        
+        // mention linnk 
+        $link = $this->formService->getPrefillLink($landlordId, $chatId);
+        $mention = "<a href=\"{$link}\">Registration Form</a>";
 
-        return "📝 Registration Process\n\n";
+        // Check if user already registered
+        $notification = Notification::Where('chat_id', $chatId)
+            ->where('landlord_id', $landlordId)
+            ->where('notification_type', NotificationType::REGISTRATION)
+            ->orderByDesc('created_at')
+            ->first();
+        
+        if ($notification) {
+            switch ($notification->status){
+                case NotificationStatus::PENDING:
+                    return "🕒 Your registration is pending for landlord approval.\nPlease wait for confirmation. 😊";
+                
+                case NotificationStatus::APPROVED:
+                    return "✅ You are already registered! If you need to update your info, please contact your landlord.";
+                
+                case NotificationStatus::REJECTED:
+                    // allow to re-register
+                    return "❌ Your previous registration was rejected.\n\n" .
+                        $header . $seperator . $mention . "\n" . $seperator . $footer;
+                
+            }
+        }
+
+        return $header . $seperator . $mention . "\n" . $seperator . $footer;
     }
 
-    private function makePayment($landlordId, $chatId, ){
+    private function makePayment($landlordId, $chatId){
         // mock
 
         return "💳 Payment Process\n\n" .
             "To make your rental payment, pls select methods:\n" .
             "1. Send me a picture of your electricity meter and water meter.\n" .
             "2. Visit: link\n";
+    }
+
+    private function getLandlordContact($landlordId, $chatId){
+        if ($landlordId) {
+            $landlord = User::find($landlordId);
+            if ($landlord && !empty($landlord->phonenumber)) {
+                $phone = $landlord->phonenumber;
+                return "📞 Contact Landlord: {$phone}";
+            }
+        }
+        return "Sorry, landlord contact information is not available.";
     }
 
     // ============ Helpers Function ============
@@ -238,16 +282,18 @@ class AgentService
             "🏠 Available rooms\n" .
             "📋 Property Rules\n" .
             "💬 Rental Questions\n\n" .
-            "How can I assist you today?" ;
+            "How can I assist you today?";
 
         $btn = $this->telegramBotService->getButtons();
         $buttons = [
             [$btn['generalRuleBtn'], $btn['contractRuleBtn']],
-            [$btn['availableRoomBtn']],
+            [$btn['availableRoomBtn'],$btn['contactLandlordBtn']],
+            [$btn['registrationBtn']],
         ];
-           
+
         $this->telegramBotService->sendMessage($bot, $chatId, $message, $buttons);
     }
+
 
     private function parseGeminiResponse($response)
     {
@@ -294,13 +340,7 @@ class AgentService
         // 1. Landlord's rental data
         // 2. Agent behavior  
         // 3. Available functions
-        $landlordPhone = "N/A";
-        if ($landlordId) {
-            $landlord = User::find($landlordId);
-            if ($landlord && !empty($landlord->phonenumber)) {
-                $landlordPhone = $landlord->phonenumber;
-            }
-        }
+        $landlordPhone = $this->getLandlordContact($landlordId, $chatId) ?? "N/A";
 
         return "You are a property rental assistant. Answer briefly (max 3 lines).
 
@@ -311,6 +351,7 @@ class AgentService
                 - checkGeneralRule → property rules
                 - checkContractRule → contract terms
                 - checkAvailableRoom → room availability
+                - registration → registration process, how to apply, sign up as tenant
 
                 RESPONSE RULES:
                 1. Always respond in this JSON format:
@@ -320,9 +361,10 @@ class AgentService
                 - \"checkGeneralRule\" → questions about rules, regulations, property guidelines
                 - \"checkContractRule\" → questions about contract, agreement, legal terms
                 - \"checkAvailableRoom\" → questions about rooms, vacancy, availability
+                - \"registration\" → questions about registration, applying, signing up, how to become a tenant
                 - null → greetings (hi/hello), help requests, general question related, off-topic
 
-                3. Use \\n for line breaks. Use bullet points (•) for lists.Add emojis for friendliness.
+                3. Use \\n for line breaks. Use bullet points (•) for lists. Add emojis for friendliness.
                 4. If you don't have information about something, politely say 'I don't have that information yet'.
                 
                 HELP/MENU REQUESTS:

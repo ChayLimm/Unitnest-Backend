@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StorageController;
 use App\Http\Controllers\BakongController;
+use App\Http\Controllers\FormController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\TelegramBotController;
@@ -64,6 +65,9 @@ Route::post('/bot', [BotController::class, 'handleAccess']);
 // Route::post('/agent', [AgentController::class, 'handleWebhook']);
 Route::post('/agent/setup', [AgentController::class, 'setUpWebhook']);  // setting bot (flexible)
 Route::post('/agent/webhook/{token}', [AgentController::class, 'handleWebhook']);   // incoming webhook update 
+
+Route::post('/agent/form/prefill-link', [FormController::class, 'getFormPrefillLink']);
+Route::post('/agent/form/webhook/submission', [FormController::class,'handleFormSubmission']);
 
 
 

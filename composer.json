@@ -9,6 +9,7 @@
         "backpack/crud": "^6.8",
         "backpack/theme-tabler": "^1.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "google/apiclient": "^2.0",
         "guzzlehttp/guzzle": "^7.2",
         "khqr-gateway/bakong-khqr-php": "1.0.0",
         "laravel/framework": "^10.10",
