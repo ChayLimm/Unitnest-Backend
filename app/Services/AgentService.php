@@ -273,6 +273,9 @@ class AgentService
         $landlordId = $fields['Landlord ID'] ?? null;
         $identityCardUrls = $fields['Identity Card ID_urls'] ?? [];
         $identityCardUrl = !empty($identityCardUrls) ? $identityCardUrls[0] : null;
+        $notification = null;
+
+        $bot = Telegrambot::where('user_id', $landlordId)->first();
 
         // log the extract data to check
         Log::info('Processing submission:', [
@@ -299,27 +302,43 @@ class AgentService
                 ],
             ]);
         }
+        
+        if ($notification) {
+            Log::info('Notification created:', ['id' => $notification->id]);
+            
+            // send msg to tenant after store done
+            $message = "✅ We received your registration info:\n"
+                    . "━━━━━━━━━━━━━━━━━━━━\n"
+                    . "Name: {$name}\n"
+                    . "Phone: {$phone}\n"
+                    . ($identityCardUrl ? "ID Card: {$identityCardUrl}\n" : "")
+                    . "━━━━━━━━━━━━━━━━━━━━\n"
+                    . "Please wait for your landlord to approve your registration.";
+            
+            if ($bot && $chatId) {
+                $this->telegramBotService->sendMessage($bot, $chatId, $message);
+            }
+            return [
+                'success' => true,
+                'message' => 'Form submission received',
+                'notification_id' => $notification->id,
+            ];
+            
+        } else {
+            Log::error('Failed to create notification.');
 
-        // send msg to tenant after store done
-        $message = "✅ We received your registration info:\n"
-                . "━━━━━━━━━━━━━━━━━━━━\n"
-                . "Name: {$name}\n"
-                . "Phone: {$phone}\n"
-                . ($identityCardUrl ? "ID Card: {$identityCardUrl}\n" : "")
-                . "━━━━━━━━━━━━━━━━━━━━\n"
-                . "Please wait for your landlord to approve your registration.";
+            // send msg to tenant, if failed
+            $message = "❌ Registration failed: Missing landlord ID or chat ID. Please try again.";
 
-
-        $bot = Telegrambot::where('user_id', $landlordId)->first();
-        if ($bot && $chatId) {
-            $this->telegramBotService->sendMessage($bot, $chatId, $message);
+            if ($bot && $chatId) {
+                $this->telegramBotService->sendMessage($bot, $chatId, $message);
+            }
+            return [
+                'success' => false,
+                'message' => 'Registration failed: Missing landlord ID or chat ID.',
+                'notification_id' => null,
+            ];
         }
-
-        return [
-            'success' => true,
-            'message' => 'Form submission received',
-            'notification_id' => $notification->id,
-        ];
     }
 
     private function makePayment($landlordId, $chatId){
