@@ -110,6 +110,10 @@ class AgentService
             case 'make_payment':
                 $reply = $this->makePayment($landlordId, $chatId);
                 break;
+            
+            case 'contact_landlord':
+                $reply = $this->getLandlordContact($landlordId, $chatId);
+                break;
 
             default:
                 $reply = "Unknown action, please try again!.";
@@ -238,7 +242,7 @@ class AgentService
         if ($notification) {
             switch ($notification->status){
                 case NotificationStatus::PENDING:
-                    return "🕒 Your registration is pending for landlord approval.\nPlease wait for confirmation. 😊";
+                    return "🕒 Your registration is pending for landlord approval.Please wait for confirmation.";
                 
                 case NotificationStatus::APPROVED:
                     return "✅ You are already registered! If you need to update your info, please contact your landlord.";
@@ -252,6 +256,70 @@ class AgentService
         }
 
         return $header . $seperator . $mention . "\n" . $seperator . $footer;
+    }
+
+    // handle process data of register form submission
+    public function processRegistrationSubmission($data){
+        
+        // extract data
+        $fields = $data['fields'] ?? [];
+        $timestamp = $data['timestamp'] ?? null;
+        $responseId = $data['response_id'] ?? null;
+
+        // extract data from 'fields' object
+        $name = $fields['Full Name'] ?? null;
+        $phone = $fields['Phone Number'] ?? null;
+        $chatId = $fields['Tenant Chat ID'] ?? null;
+        $landlordId = $fields['Landlord ID'] ?? null;
+        $identityCardUrls = $fields['Identity Card ID_urls'] ?? [];
+        $identityCardUrl = !empty($identityCardUrls) ? $identityCardUrls[0] : null;
+
+        // log the extract data to check
+        Log::info('Processing submission:', [
+            'landlord_id' => $landlordId,
+            'chat_id' => $chatId,
+            'name' => $name,
+            'phone' => $phone,
+            'identity_card_url' => $identityCardUrl,
+        ]);
+
+        // store to notifications table
+        if ($chatId && $landlordId) {
+           // TODO: Save to database
+            $notification = Notification::create([
+                'landlord_id' => $landlordId,
+                'chat_id' => $chatId,
+                'read' => false,
+                'notification_type' => NotificationType::REGISTRATION,
+                'status' => NotificationStatus::PENDING,
+                'payload' => [
+                    'name' => $name,
+                    'phone' => $phone,
+                    'identity_card_url' => $identityCardUrl,
+                ],
+            ]);
+        }
+
+        // send msg to tenant after store done
+        $message = "✅ We received your registration info:\n"
+                . "━━━━━━━━━━━━━━━━━━━━\n"
+                . "Name: {$name}\n"
+                . "Phone: {$phone}\n"
+                . ($identityCardUrl ? "ID Card: {$identityCardUrl}\n" : "")
+                . "━━━━━━━━━━━━━━━━━━━━\n"
+                . "Please wait for your landlord to approve your registration.";
+
+
+        $bot = Telegrambot::where('user_id', $landlordId)->first();
+        if ($bot && $chatId) {
+            $this->telegramBotService->sendMessage($bot, $chatId, $message);
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Form submission received',
+            'notification_id' => $notification->id,
+        ];
     }
 
     private function makePayment($landlordId, $chatId){
