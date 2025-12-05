@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\NotificationType;
 use App\Enums\NotificationStatus;
 use App\Services\FormService;
+use App\Services\AgentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -14,9 +15,11 @@ class FormController extends Controller
 {
 
     protected $formService;
-    public function __construct(FormService $formService)
+    protected $agentService;
+    public function __construct(FormService $formService, AgentService $agentService)
     {
         $this->formService = $formService;
+        $this->agentService = $agentService;
     }
 
     public function getFormPrefillLink(Request $request){
@@ -66,54 +69,10 @@ class FormController extends Controller
 
         Log::info('Received form submission webhook:', ['data' => $data]);
 
-        // extract data
-        $fields = $data['fields'] ?? [];
-        $timestamp = $data['timestamp'] ?? null;
-        $responseId = $data['response_id'] ?? null;
+        // call agent service to process data
+        $result = $this->agentService->processRegistrationSubmission($data);
 
-        // extract data fields from "fields" object
-        $name = $fields['Full Name'] ?? null;
-        $phone = $fields['Phone Number'] ?? null;
-        $chatId = $fields['Tenant Chat ID'] ?? null;
-        $landlordId = $fields['Landlord ID'] ?? null;
-        $identityCardIds = $fields['Identity Card ID'] ?? null;
-        
-        // Get file URLs (from itemResponses loop)
-        $identityCardUrls = $fields['Identity Card ID_urls'] ?? [];
-        $identityCardUrl = !empty($identityCardUrls) ? $identityCardUrls[0] : null;
-
-        // log the extract data to check
-        Log::info('Processing submission:', [
-            'timestamp' => $timestamp,
-            'response_id' => $responseId,
-            'name' => $name,
-            'phone' => $phone,
-            'landlord_id' => $landlordId,
-            'chat_id' => $chatId,
-            'identity_card_url' => $identityCardUrl,
-            'identity_card_id' => $identityCardIds,
-        ]);
-
-        // TODO: Save to database
-        $notification = Notification::create([
-            'landlord_id' => $landlordId,
-            'chat_id' => $chatId,
-            'read' => false,
-            'notification_type' => NotificationType::REGISTRATION,
-            'status' => NotificationStatus::PENDING,
-            'payload' => [
-                'name' => $name,
-                'phone' => $phone,
-                'identity_card_url' => $identityCardUrl,
-            ],
-            
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Form submission received',
-            'notification_id' => $notification->id,
-        ], 200);
+        return response()->json($result, $result['success'] ? 200 : 500);
 
     }
 
