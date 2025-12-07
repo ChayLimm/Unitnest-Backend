@@ -48,14 +48,15 @@ class AgentService
             return;
         }
 
-        $prompt = $this->buildPrompt($landlordId, $chatId, $text);
+        $normalizeText = $this->normalizeUserMessage($text);
+        $prompt = $this->buildPrompt($landlordId, $chatId, $normalizeText);
 
         // Call Gemini AI service
         $aiResponse = $this->geminiService->generate($prompt);
         Log::info('Gemini Response:', ['response' => $aiResponse]);
 
-        // Parse Gemini response
-        $formatResponse = $this->parseGeminiResponse($aiResponse);
+        // Normalize Gemini response
+        $formatResponse = $this->geminiService->normalizeResponse($aiResponse);
         Log::info('Parsed Response:', ['formatResponse' => $formatResponse]);
 
         // handle reponse event/null 
@@ -381,44 +382,17 @@ class AgentService
         $this->telegramBotService->sendMessage($bot, $chatId, $message, $buttons);
     }
 
+    // normalize user input text message for gemini ai
+    private function normalizeUserMessage($text){
 
-    private function parseGeminiResponse($response)
-    {
-        Log::info('=== Starting parseGeminiResponse ===');
-        Log::info('Original Gemini response:', ['response' => $response]);
+        $text = trim($text);
+        $text = mb_strtolower($text, 'UTF-8'); // convert to lowercase
 
-        // 1: Remove markdown wrappers
-        $cleaned = preg_replace('/```json\s*|\s*```/', '', $response);
-        $cleaned = trim($cleaned);
+        // remove emojis, non-standard characters, extra spaces
+        $text = preg_replace('/[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u', '', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
 
-        Log::info('Cleaned response:', ['cleaned' => $cleaned]);
-
-        // 2: Decode JSON
-        $decoded = json_decode($cleaned, true);
-
-        // 3: Check if decoded, JSON with event and text
-        if (json_last_error() === JSON_ERROR_NONE && isset($decoded['text'])) {
-            Log::info('✅ JSON parsed successfully', $decoded);
-            return [
-                'event' => $decoded['event'] ?? null,
-                'text' => $decoded['text'] ?? 'Processing...'
-            ];
-        }
-
-        // 4: JSON failed - use fallback
-        Log::warning('JSON parse failed, using fallback', ['error' => json_last_error_msg()]);
-
-        if (preg_match('/"text"\s*:\s*"([^"]+)"/', $response, $matches)) {
-            return [
-                'event' => null,
-                'text' => $matches[1]
-            ];
-        }
-
-        return [
-            'event' => null,
-            'text' => 'I can help you with property management questions! 😊'
-        ];
+        return $text;
     }
 
     // handle build prompt for gemini
@@ -429,37 +403,40 @@ class AgentService
         // 3. Available functions
         $landlordPhone = $this->getLandlordContact($landlordId, $chatId) ?? "N/A";
 
-        return "You are a property rental assistant. Answer briefly (max 3 lines).
+        return "ROLE:
+                You are a property rental assistant. Help users with property services quickly and professionally.
 
-                AVAILABLE DATA:
-                - Contact Landlord: {$landlordPhone}
+                CONTEXT:
+                - Landlord Contact: {$landlordPhone}
 
-                FUNCTIONS (choose event based on user question):
-                - checkGeneralRule → property rules
-                - checkContractRule → contract terms
-                - checkAvailableRoom → room availability
-                - registration → registration process, how to apply, sign up as tenant
+                TASK:
+                Classify the user's request into one event and provide a brief helpful reply.
 
-                RESPONSE RULES:
-                1. Always respond in this JSON format:
-                {\"event\": \"functionName or null\", \"text\": \"your short message\"}
+                EVENTS:
+                - checkGeneralRule: rules/property policies, what are the rules
+                - checkContractRule: contract/agreement rule, terms
+                - checkAvailableRoom: rooms, available
+                - registration: register, apply, sign up, become tenant, get registration form
+                - null: greetings (hi/hello), help/menu (what can you do), unclear, off-topic
 
-                2. When to use each event:
-                - \"checkGeneralRule\" → questions about rules, regulations, property guidelines
-                - \"checkContractRule\" → questions about contract, agreement, legal terms
-                - \"checkAvailableRoom\" → questions about rooms, vacancy, availability
-                - \"registration\" → questions about registration, applying, signing up, how to become a tenant
-                - null → greetings (hi/hello), help requests, general question related, off-topic
+                OUTPUT FORMAT:
+                {\"event\": \"eventName or null\", \"text\": \"reply\"}
 
-                3. Use \\n for line breaks. Use bullet points (•) for lists. Add emojis for friendliness.
-                4. If you don't have information about something, politely say 'I don't have that information yet'.
+                RULES:
+                - Keep reply short (max 3 lines).
+                - Use \\n for breaks, • for lists, emojis for tone
+                - For general questions: event=null, provide helpful answer
+                - For help/menu: event=null, list all services
+                - If unsure: event=null, polite response
+                - Never repeat user input
+                - Never include markdown or extra text outside JSON.
+
+                EXAMPLES:
+                User Message: \"hi\"
+                {\"event\": null, \"text\": \"Hello! 👋 How can I help you today?\"}
                 
-                HELP/MENU REQUESTS:
-                If the user asks for help, what you can do, menu, options, features, how you can help, or similar:
-                Respond with a list of all available functions above, using bullet points or emojis.
-
-                USER QUESTION: {$message}
-                Respond ONLY with a single JSON object, no extra text.
+                USER MESSAGE: \"{$message}\"
+                Respond with JSON only.
             ";
     }
 }
