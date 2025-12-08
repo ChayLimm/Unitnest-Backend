@@ -111,7 +111,16 @@ Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, '
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
-Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
+// Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
+Route::prefix('rooms/{roomId}')->group(function () {    
+    // Room services CRUD routes
+    Route::prefix('/services')->group(function () {
+        Route::get('/', [RoomController::class, 'roomsService']); // GET all services for room
+        Route::post('/', [RoomController::class, 'attachService']); // POST attach service to room
+        Route::put('/{serviceId}', [RoomController::class, 'updateService']); // PUT update service details
+        Route::delete('/{serviceId}', [RoomController::class, 'detachService']); // DELETE detach service
+    });
+});
 
 // Report API
 Route::get('/reports', [ReportController::class, 'index']);
