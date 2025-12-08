@@ -21,11 +21,11 @@ class GeminiService
 
         $this->primaryModel = 'gemini-2.5-flash';
         $this->backupModels = [
-            'gemini-2.0-flash-lite',
             'gemini-2.0-flash',
+            'gemini-2.0-flash-lite',
         ];
 
-        $this->timeout = 30; // seconds
+        $this->timeout = 10; // seconds
     }
 
     /**
@@ -65,6 +65,7 @@ class GeminiService
     // call gemini API with specific model
     private function callGeminiAPI (string $model, string $prompt): ?string
     {
+        $start = microtime(true); // start timing 
         try {
             $url = "{$this->endpoint}/models/{$model}:generateContent?key={$this->apiKey}";
             
@@ -79,12 +80,15 @@ class GeminiService
                 ],
                 'generationConfig' => [
                     'maxOutputTokens' => 1024, // balance for JSON response 
-                    'temperature' => 0.7,
+                    'temperature' => 0.5,
                 ]
             ];
 
             //
             $response = Http::timeout($this->timeout)->post($url, $payload);
+
+            $duration = microtime(true) - $start; // end timing of gemini call
+            Log::info("Gemini [{$model}] response time: {$duration} seconds");
 
             if (!$response->successful()) {
                 Log::error("Model {$model} API failed", ['status' => $response->status()]);
@@ -125,5 +129,46 @@ class GeminiService
             Log::error("Model {$model} error: " . $e->getMessage());
             return null;
         }
+    }
+
+    // handle clean reponse from ai - output normalization
+    public function normalizeResponse($response){
+
+        // log raw response
+        Log::info("Gemini Raw Response:", ['response' => $response]);
+
+        // remove markdown wrappers
+        $removeMarkdown = preg_replace('/```json\s*|\s*```/', '', $response);
+        $clean = trim ($removeMarkdown);
+
+        Log::info("Gemini Clean Response:", ['clean' => $clean]);
+
+        // decode json response clean
+        $data = json_decode($clean, true);
+
+        // check if json decode success
+        if (json_last_error() === JSON_ERROR_NONE && isset($data['text'])) {
+            Log::info('Gemini response parsed as JSON successfully:', $data);
+            return [
+                'event' => isset($data['event']) ? trim($data['event']) : null,
+                'text' => $data['text'] ?? 'Processing...',
+            ];
+        }
+
+        // if not valid json, return text only
+        if (preg_match('/"text"\s*:\s*"([^"]+)"/', $response, $matches)) {
+            return [
+                'event' => null,
+                'text' => $matches[1]
+            ];
+        }
+
+        // if failed all, manual return
+        Log::error('Gemini response cannot be parsed');
+        return [
+            'event' => null,
+            'text' => 'Sorry, I am unable to process your request. Please try again in a moment!',
+        ];
+
     }
 }
