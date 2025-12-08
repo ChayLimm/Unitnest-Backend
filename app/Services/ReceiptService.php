@@ -6,6 +6,7 @@ use LaravelDaily\Invoices\Invoice;
 use LaravelDaily\Invoices\Classes\Buyer;
 use LaravelDaily\Invoices\Classes\Party;
 use LaravelDaily\Invoices\Classes\InvoiceItem;
+use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Services\BakongService;
@@ -303,7 +304,7 @@ class ReceiptService
     protected static function fetchQRFromMicroservice(array $qrData): ?string
     {
         try {
-            $microserviceUrl = config('services.qr_microservice.url', 'http://localhost:5001');
+            $microserviceUrl = config('services.qr_microservice');
             
             $requestBody = [
                 'qr_code' => $qrData['qr_code'] ?? ''
