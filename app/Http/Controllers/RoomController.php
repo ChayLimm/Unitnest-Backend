@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Room;
+use App\Models\RoomService;
 use Illuminate\Http\Request;
 
 class RoomController extends Controller
@@ -112,7 +113,6 @@ class RoomController extends Controller
 
         return response()->json($room);
     }
-   
     public function roomsService(Request $request, $roomId)
     {
         $room = Room::find($roomId);
@@ -123,7 +123,8 @@ class RoomController extends Controller
             ], 404);
         }
 
-        $services = $room->services;
+        // Get services with pivot data
+        $services = $room->services()->get();
         
         return response()->json([
             'data' => $services
@@ -145,7 +146,9 @@ class RoomController extends Controller
         }
 
         // Check if service already attached
-        if ($room->services()->where('service_id', $validated['service_id'])->exists()) {
+        if (RoomService::where('room_id', $roomId)
+            ->where('service_id', $validated['service_id'])
+            ->exists()) {
             return response()->json([
                 'message' => 'Service already attached to this room'
             ], 400);
@@ -154,7 +157,7 @@ class RoomController extends Controller
         // Attach service to room
         $room->services()->attach($validated['service_id']);
 
-        // Load the attached service with details
+        // Get the attached service
         $service = Service::find($validated['service_id']);
         
         return response()->json([
@@ -174,52 +177,40 @@ class RoomController extends Controller
         }
 
         // Check if service is attached
-        if (!$room->services()->where('service_id', $serviceId)->exists()) {
+        $roomService = RoomService::where('room_id', $roomId)
+            ->where('service_id', $serviceId)
+            ->first();
+
+        if (!$roomService) {
             return response()->json([
                 'message' => 'Service not attached to this room'
             ], 404);
         }
 
         // Detach service from room
-        $room->services()->detach($serviceId);
+        $roomService->delete();
 
         return response()->json([
             'message' => 'Service detached successfully'
         ], 200);
     }
 
-    public function updateService(Request $request, $roomId, $serviceId)
+    public function getServiceDetails(Request $request, $roomId, $serviceId)
     {
-        $validated = $request->validate([
-            'price' => 'nullable|numeric|min:0',
-            'unit' => 'nullable|string|max:50',
-            'description' => 'nullable|string',
-        ]);
+        $roomService = RoomService::with(['room', 'service'])
+            ->where('room_id', $roomId)
+            ->where('service_id', $serviceId)
+            ->first();
 
-        $room = Room::find($roomId);
-        
-        if (!$room) {
+        if (!$roomService) {
             return response()->json([
-                'message' => 'Room not found'
+                'message' => 'Service not found for this room'
             ], 404);
         }
 
-        // Check if service is attached
-        if (!$room->services()->where('service_id', $serviceId)->exists()) {
-            return response()->json([
-                'message' => 'Service not attached to this room'
-            ], 404);
-        }
-
-        // Update pivot table data
-        $room->services()->updateExistingPivot($serviceId, $validated);
-
-        // Get updated service with pivot data
-        $service = $room->services()->where('service_id', $serviceId)->first();
-        
         return response()->json([
-            'message' => 'Service updated successfully',
-            'data' => $service
-        ], 200);
+            'data' => $roomService
+        ]);
     }
+
 }

@@ -28,4 +28,12 @@ class Service extends Model
     {
         return $this->hasMany(PaymentItem::class);
     }
+    public function rooms()
+    {
+        return $this->belongsToMany(Room::class, 'room_services')
+            ->using(RoomService::class)
+            ->withPivot('price', 'unit', 'description')
+            ->withTimestamps();
+    }
+
 }
