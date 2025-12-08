@@ -14,6 +14,8 @@ return [
     |
     */
 
+    'qr_microservice' => env('MICROSERVICE_URL', 'http://localhost:5001'),
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),
