@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Contract;
 use App\Models\Room;
 use App\Models\RoomService;
 use Illuminate\Http\Request;
@@ -210,6 +211,32 @@ class RoomController extends Controller
 
         return response()->json([
             'data' => $roomService
+        ]);
+    }
+
+    public function getActiveContract($roomId)
+    {
+        if (!$roomId) {
+            return response()->json([
+                "message" => "room id is required"
+            ], 400);
+        }
+    
+        $contract = Contract::with('tenant')
+            ->where('room_id', $roomId)
+            ->whereNull('end_date')
+            ->where('status', 'active')
+            ->first(); // Use first() instead of get() if you expect only one active contract
+    
+        if (!$contract) {
+            return response()->json([
+                "message" => "No active contract found for this room"
+            ], 404);
+        }
+    
+        return response()->json([
+            "contract" => $contract,
+            "tenant" => $contract->tenant // Assuming you have a relationship defined
         ]);
     }
 

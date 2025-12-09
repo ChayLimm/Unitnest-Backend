@@ -82,7 +82,7 @@ Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR'
 Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
 
 ///ai
-Route::apiResource('users', UserController::class);
+Route::apiResource('users', controller: UserController::class);
 Route::apiResource('bakong-accounts', BakongAccountController::class);
 Route::apiResource('buildings',  BuildingController::class);
 Route::apiResource('settings', SettingController::class);
@@ -111,6 +111,7 @@ Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, '
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
+Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveContract']);
 // Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
 Route::prefix('rooms/{roomId}')->group(function () {    
     // Room services CRUD routes
