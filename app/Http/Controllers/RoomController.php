@@ -219,7 +219,7 @@ class RoomController extends Controller
         if (!$roomId) {
             return response()->json([
                 "message" => "room id is required"
-            ], 400);
+            ], 200);
         }
     
         $contract = Contract::with('tenant')
@@ -231,7 +231,7 @@ class RoomController extends Controller
         if (!$contract) {
             return response()->json([
                 "message" => "No active contract found for this room"
-            ], 404);
+            ], 200);
         }
     
         return response()->json([
