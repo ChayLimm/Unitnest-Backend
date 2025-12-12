@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use App\Services\OllamaService;
 use App\Services\GeminiService;
 use App\Services\AgentService;
@@ -33,10 +34,22 @@ class AgentController extends Controller
             'all_data' => $request->all(),
         ]);
 
-        $validated = $request->validate([
-            'token' => 'required|string',
-            'user_id' => 'required|integer|exists:users,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'token' => 'required|string',
+                'user_id' => 'required|integer|exists:users,id',
+            ]);
+        } catch (ValidationException $e) {
+            $errors = $e->errors();
+            $message = 'Validation failed';
+            if (isset($errors['user_id'])) {
+                $message = 'Invalid user_id: user does not exist or is not valid';
+            }
+            return response()->json([
+                'message' => $message,
+                'errors' => $errors,
+            ], 422);
+        }
 
         $token = $validated['token'];
         $landlordId = $validated['user_id'];
