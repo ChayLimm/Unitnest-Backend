@@ -13,6 +13,7 @@ class Service extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'landlord_id',
         'name',
         'unit_price',
         'description',
@@ -34,6 +35,10 @@ class Service extends Model
             ->using(RoomService::class)
             ->withPivot('price', 'unit', 'description')
             ->withTimestamps();
+    }
+    public function landlord()
+    {
+        return $this->belongsTo(User::class, 'landlord_id');
     }
 
 }
