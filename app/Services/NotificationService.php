@@ -48,18 +48,23 @@ class NotificationService {
         $responseId = $data['response_id'] ?? null;
 
         // extract data from 'fields' object
-        $name = $fields['Full Name'] ?? null;
+        $firstName = $fields['First Name'] ?? null;
+        $lastName = $fields['Last Name'] ?? null;
+        $email = $fields['Email (Optional)'] ?? null;
         $phone = $fields['Phone Number'] ?? null;
         $chatId = $fields['Tenant Chat ID'] ?? null;
         $landlordId = $fields['Landlord ID'] ?? null;
         $identityCardUrls = $fields['Identity Card ID_urls'] ?? [];
-        $identityCardUrl = !empty($identityCardUrls) ? $identityCardUrls[0] : null;
+        $identityImageUrl = !empty($identityCardUrls) ? $identityCardUrls[0] : null;
 
         // prepare payload
         $payload = [
-            'name' => $name,
+            // 'name' => $name,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'phone' => $phone,
-            'identity_card_url' => $identityCardUrl,
+            'email' => $email,
+            'identity_image_url' => $identityImageUrl,
         ];
         $bot = Telegrambot::where('user_id', $landlordId)->first();
 
@@ -98,14 +103,19 @@ class NotificationService {
     // handle notify message regisetration tenant
     public function notifyRegistrationTenant($bot, $chatId, $payload, $success = true){
         if ($success) {
-            $name = $payload['name'] ?? 'N/A';
+            // $name = $payload['name'] ?? 'N/A';
+            $firstName = $payload['first_name'] ?? 'N/A';
+            $lastName = $payload['last_name'] ?? 'N/A';
+            $name = trim($firstName . ' ' . $lastName);
             $phone = $payload['phone'] ?? 'N/A';
-            $identityCardUrl = $payload['identity_card_url'] ?? null;
+            $email = $payload['email'] ?? 'N/A';
+            $identityImageUrl = $payload['identity_image_url'] ?? null;
             $message = "✅ We received your registration info:\n"
                 . "━━━━━━━━━━━━━━━━━━━━\n"
                 . "Name: {$name}\n"
                 . "Phone: {$phone}\n"
-                . ($identityCardUrl ? "ID Card: {$identityCardUrl}\n" : "")
+                . "Email: {$email}\n"
+                . ($identityImageUrl ? "ID Card: {$identityImageUrl}\n" : "")
                 . "━━━━━━━━━━━━━━━━━━━━\n"
                 . "Please wait for your landlord to approve your registration.";
         } else {
