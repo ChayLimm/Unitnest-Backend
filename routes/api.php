@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\TenantController;
 use App\Http\Controllers\BakongAccountController;
 use App\Http\Controllers\bot\BotController;
 use App\Http\Controllers\BuildingController;
@@ -97,6 +98,7 @@ Route::apiResource('payments', PaymentController::class);
 Route::apiResource('payment-items', PaymentController::class);
 Route::apiResource('notifications', NotificationController::class);
 Route::apiResource('telegrambots', TelegramBotController::class);
+Route::apiResource('tenants', TenantController::class);
 // Custom route
 Route::get('buildings/landlord/{landlordId}', [BuildingController::class, 'getByLandlord']);
 Route::get('settings/user/{userId}', [SettingController::class, 'getUserSettings']);
@@ -112,6 +114,7 @@ Route::patch('notifications/{notification}/read', [NotificationController::class
 Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveContract']);
+Route::get('landlord/{id}/tenants',[TenantController::class,'getByLandlord']);
 // Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
 Route::prefix('rooms/{roomId}')->group(function () {    
     // Room services CRUD routes
