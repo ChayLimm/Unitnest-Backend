@@ -16,6 +16,7 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'landlord_id' => 'required',
             'name' => 'required|string|max:255',
             'unit_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
@@ -35,7 +36,8 @@ class ServiceController extends Controller
     public function update(Request $request, Service $service)
     {
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
+            'landlord_id' => 'required',
+            'name' => 'required|string|max:255',
             'unit_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
         ]);

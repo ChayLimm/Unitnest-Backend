@@ -13,6 +13,7 @@ class RoomType extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'landlord_id',
         'room_type_name',
         'description',
     ];
@@ -21,5 +22,9 @@ class RoomType extends Model
     public function rooms()
     {
         return $this->hasMany(Room::class, 'room_type_id');
+    }
+    public function landlord()
+    {
+        return $this->belongsTo(User::class, 'landlord_id');
     }
 }

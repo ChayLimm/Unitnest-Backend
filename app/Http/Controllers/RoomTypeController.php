@@ -16,6 +16,7 @@ class RoomTypeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'landlord_id' => 'required',
             'room_type_name' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
@@ -33,8 +34,9 @@ class RoomTypeController extends Controller
 
     public function update(Request $request, RoomType $roomType)
     {
-        $validated = $request->validate([
-            'room_type_name' => 'sometimes|string|max:255',
+         $validated = $request->validate([
+            'landlord_id' => 'required',
+            'room_type_name' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
 
