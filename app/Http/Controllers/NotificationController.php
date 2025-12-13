@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Http\Request;
+use App\Services\TelegramBotService;
 
 class NotificationController extends Controller
 {
@@ -67,4 +70,6 @@ class NotificationController extends Controller
         
         return response()->json($notifications);
     }
+
+ 
 }
