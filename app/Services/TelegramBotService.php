@@ -40,6 +40,20 @@ class TelegramBotService
         ];
     }
 
+    // define button for mini app - web app
+    public function getWebAppButton($buttonText = '🌐 Open Mini App'){
+
+        $miniAppUrl = env('MINI_APP_URL');
+        return [
+            [
+                [
+                    'text' => $buttonText,
+                    'web_app' => ['url' => $miniAppUrl]
+                ]
+            ]
+        ];
+    }
+
     // ============ Telegram API Call ============
 
     public function setWebhook($token)

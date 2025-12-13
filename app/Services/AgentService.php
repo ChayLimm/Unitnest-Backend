@@ -48,6 +48,13 @@ class AgentService
             return;
         }
 
+        // testing button mini app with pay
+        if ($text === '/pay') {
+            $buttons = $this->telegramBotService->getWebAppButton();
+            $this->telegramBotService->sendMessage($bot, $chatId, 'Click below to process:', $buttons);
+            return;
+        }
+
         $normalizeText = $this->normalizeUserMessage($text);
         $prompt = $this->buildPrompt($landlordId, $chatId, $normalizeText);
 
@@ -257,89 +264,6 @@ class AgentService
         }
 
         return $header . $seperator . $mention . "\n" . $seperator . $footer;
-    }
-
-    // handle process data of register form submission
-    public function processRegistrationSubmission($data){
-        
-        // extract data
-        $fields = $data['fields'] ?? [];
-        $timestamp = $data['timestamp'] ?? null;
-        $responseId = $data['response_id'] ?? null;
-
-        // extract data from 'fields' object
-        $name = $fields['Full Name'] ?? null;
-        $phone = $fields['Phone Number'] ?? null;
-        $chatId = $fields['Tenant Chat ID'] ?? null;
-        $landlordId = $fields['Landlord ID'] ?? null;
-        $identityCardUrls = $fields['Identity Card ID_urls'] ?? [];
-        $identityCardUrl = !empty($identityCardUrls) ? $identityCardUrls[0] : null;
-        $notification = null;
-
-        $bot = Telegrambot::where('user_id', $landlordId)->first();
-
-        // log the extract data to check
-        Log::info('Processing submission:', [
-            'landlord_id' => $landlordId,
-            'chat_id' => $chatId,
-            'name' => $name,
-            'phone' => $phone,
-            'identity_card_url' => $identityCardUrl,
-        ]);
-
-        // store to notifications table
-        if ($chatId && $landlordId) {
-           // TODO: Save to database
-            $notification = Notification::create([
-                'landlord_id' => $landlordId,
-                'chat_id' => $chatId,
-                'read' => false,
-                'notification_type' => NotificationType::REGISTRATION,
-                'status' => NotificationStatus::PENDING,
-                'payload' => [
-                    'name' => $name,
-                    'phone' => $phone,
-                    'identity_card_url' => $identityCardUrl,
-                ],
-            ]);
-        }
-        
-        if ($notification) {
-            Log::info('Notification created:', ['id' => $notification->id]);
-            
-            // send msg to tenant after store done
-            $message = "✅ We received your registration info:\n"
-                    . "━━━━━━━━━━━━━━━━━━━━\n"
-                    . "Name: {$name}\n"
-                    . "Phone: {$phone}\n"
-                    . ($identityCardUrl ? "ID Card: {$identityCardUrl}\n" : "")
-                    . "━━━━━━━━━━━━━━━━━━━━\n"
-                    . "Please wait for your landlord to approve your registration.";
-            
-            if ($bot && $chatId) {
-                $this->telegramBotService->sendMessage($bot, $chatId, $message);
-            }
-            return [
-                'success' => true,
-                'message' => 'Form submission received',
-                'notification_id' => $notification->id,
-            ];
-            
-        } else {
-            Log::error('Failed to create notification.');
-
-            // send msg to tenant, if failed
-            $message = "❌ Registration failed: Missing landlord ID or chat ID. Please try again.";
-
-            if ($bot && $chatId) {
-                $this->telegramBotService->sendMessage($bot, $chatId, $message);
-            }
-            return [
-                'success' => false,
-                'message' => 'Registration failed: Missing landlord ID or chat ID.',
-                'notification_id' => null,
-            ];
-        }
     }
 
     private function makePayment($landlordId, $chatId){

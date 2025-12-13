@@ -10,16 +10,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use App\Models\Notification;
+use App\Services\NotificationService;
 
 class FormController extends Controller
 {
 
     protected $formService;
-    protected $agentService;
-    public function __construct(FormService $formService, AgentService $agentService)
+    protected $notificationService;
+    // protected $agentService;
+
+    public function __construct(FormService $formService, NotificationService $notificationService)
     {
         $this->formService = $formService;
-        $this->agentService = $agentService;
+        $this->notificationService = $notificationService;
     }
 
     public function getFormPrefillLink(Request $request){
@@ -70,7 +73,7 @@ class FormController extends Controller
         Log::info('Received form submission webhook:', ['data' => $data]);
 
         // call agent service to process data
-        $result = $this->agentService->processRegistrationSubmission($data);
+        $result = $this->notificationService->handleRegistrationSubmmision($data);
 
         return response()->json($result, $result['success'] ? 200 : 500);
 
