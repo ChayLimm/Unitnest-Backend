@@ -116,7 +116,7 @@ Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveContract']);
 Route::get('landlord/{id}/tenants',[TenantController::class,'getByLandlord']);
 // Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
-Route::prefix('rooms/{roomId}')->group(function () {    
+Route::prefix('rooms/{roomId}')->group(function () {
     // Room services CRUD routes
     Route::prefix('/services')->group(function () {
         Route::get('/', [RoomController::class, 'roomsService']); // GET all services for room
@@ -128,7 +128,6 @@ Route::prefix('rooms/{roomId}')->group(function () {
 
 // Report API
 Route::get('/reports', [ReportController::class, 'index']);
-Route::get('/reports/unpaid-rooms', [ReportController::class, 'unpaidRooms']);
 Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
 
 // Receipt PDF
