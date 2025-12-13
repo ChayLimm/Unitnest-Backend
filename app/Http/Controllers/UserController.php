@@ -10,6 +10,10 @@ use Illuminate\Validation\Rules;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private \App\Services\StorageService $storageService
+    ) {}
+
     public function index()
     {
         $users = User::with('role')->get();

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\StorageService;
 use Illuminate\Http\Request;
+use App\Services\StorageService;
+use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class StorageController extends Controller
 {
@@ -11,32 +13,40 @@ class StorageController extends Controller
         private StorageService $storageService
     ) {}
 
-    public function upload(Request $request)
+    /**
+     * Upload image to external storage
+     */
+    public function upload(Request $request): JsonResponse
     {
-        $request->validate([
-            'image' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
-        ]);
+        try {
+            $result = $this->storageService->upload(
+                $request->file('image')
+            );
 
-        $result = $this->storageService->upload(
-            $request->file('image')
-        );
-
-        return response()->json([
-            'message' => 'Uploaded successfully',
-            'path'    => $result['path'],
-            'url'     => $result['url'],
-        ], 201);
+            return response()->json([
+                'message' => 'Uploaded successfully',
+                'url' => $result['url'],
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Upload failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function show(string $path)
+    /**
+     * Get image from external storage via HTTP proxy
+     */
+    public function imageUrl(string $id): Response
     {
-        // Decode the path if it's URL encoded
-        $path = urldecode($path);
-        
-        return $this->storageService->get($path);
+        return $this->storageService->get($id);
     }
 
-    public function destroy(string $path)
+    /**
+     * Delete image from external storage
+     */
+    public function destroy(string $path): JsonResponse
     {
         $path = urldecode($path);
         
@@ -46,10 +56,36 @@ class StorageController extends Controller
             ], 404);
         }
 
-        $this->storageService->delete($path);
+        $deleted = $this->storageService->delete($path);
+
+        if ($deleted) {
+            return response()->json([
+                'message' => 'File deleted successfully'
+            ], 200);
+        }
 
         return response()->json([
-            'message' => 'File deleted successfully'
-        ], 200);
+            'message' => 'Failed to delete file'
+        ], 500);
+    }
+
+    /**
+     * List all uploaded images
+     */
+    public function index(): JsonResponse
+    {
+        $files = $this->storageService->listFiles();
+        
+        $images = array_map(function ($file) {
+            return [
+                'path' => $file,
+                'url' => $this->storageService->url($file),
+            ];
+        }, $files);
+
+        return response()->json([
+            'images' => $images,
+            'count' => count($images)
+        ]);
     }
 }
