@@ -15,6 +15,11 @@ return [
     */
 
     'qr_microservice' => env('MICROSERVICE_URL', 'http://localhost:5001'),
+    
+    'image' => [
+        'url' => env('IMAGE_URL'),
+        'upload_url' => env('REMOTE_STORAGE_URL'),
+    ],
 
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),

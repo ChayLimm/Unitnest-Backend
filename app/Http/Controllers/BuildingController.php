@@ -4,9 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Building;
 use Illuminate\Http\Request;
+use App\Services\StorageService;
 
 class BuildingController extends Controller
 {
+    public function __construct(
+        private StorageService $storageService
+    ) {}
+
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 15);
@@ -34,12 +39,19 @@ class BuildingController extends Controller
             'landlord_id' => 'required|exists:users,id',
             'name' => 'required|string|max:255',
             'address' => 'required|string',
-            'image_url' => 'nullable|url',
             'floor' => 'nullable|integer',
             'unit' => 'nullable|integer',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        $building = Building::create($validated);
+        $building = Building::create(collect($validated)->except('image')->toArray());
+
+        if ($request->hasFile('image')) {
+            $result = $this->storageService->upload($request->file('image'));
+            $building->update([
+                'image_url' => $result['url'],
+            ]);
+        }
 
         return response()->json($building, 201);
     }
@@ -56,12 +68,19 @@ class BuildingController extends Controller
             'landlord_id' => 'sometimes|exists:users,id',
             'name' => 'sometimes|string|max:255',
             'address' => 'sometimes|string',
-            'image_url' => 'nullable|url',
             'floor' => 'nullable|integer',
             'unit' => 'nullable|integer',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        $building->update($validated);
+        $building->update(collect($validated)->except('image')->toArray());
+
+        if ($request->hasFile('image')) {
+            $result = $this->storageService->upload($request->file('image'));
+            $building->update([
+                'image_url' => $result['url'],
+            ]);
+        }
 
         return response()->json($building);
     }

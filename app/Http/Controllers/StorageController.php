@@ -3,50 +3,89 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
+use App\Services\StorageService;
+use Illuminate\Http\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
+
 class StorageController extends Controller
 {
-    public function imageUrl(Request $request, $id)
+    public function __construct(
+        private StorageService $storageService
+    ) {}
+
+    /**
+     * Upload image to external storage
+     */
+    public function upload(Request $request): JsonResponse
     {
-        // $name = $request->input('name');
-        $name = $id;
-        $url = env('IMAGE_URL') . '/' . $name;
+        try {
+            $result = $this->storageService->upload(
+                $request->file('image')
+            );
 
-        $response = Http::get($url);
-
-        if ($response->successful()) {
-            return response($response->body(), 200)
-                    ->header('Content-Type', $response->header('Content-Type'));
+            return response()->json([
+                'message' => 'Uploaded successfully',
+                'url' => $result['url'],
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Upload failed',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['message' => 'Image not found'], 404);
     }
 
-    public function upload(Request $request)
+    /**
+     * Get image from external storage via HTTP proxy
+     */
+    public function imageUrl(string $id): Response
     {
-        $url = env('REMOTE_STORAGE_URL') . 'upload';
-        $request->validate([
-            'image' => 'required|file|mimes:jpg,jpeg,png|max:2048'
-        ]);
+        return $this->storageService->get($id);
+    }
 
-        $file = $request->file('image');
+    /**
+     * Delete image from external storage
+     */
+    public function destroy(string $path): JsonResponse
+    {
+        $path = urldecode($path);
         
-        $filename = time() . '_' . $file->getClientOriginalName();
+        if (!$this->storageService->exists($path)) {
+            return response()->json([
+                'message' => 'File not found'
+            ], 404);
+        }
 
-        $disk = Storage::disk('external');
+        $deleted = $this->storageService->delete($path);
 
-        $path = $disk->putFileAs('', $file, $filename);
-
-        $url = $disk->url($path);
-
-        Log::info("File uploaded to external storage", ['path' => $path, 'url' => $url]);
+        if ($deleted) {
+            return response()->json([
+                'message' => 'File deleted successfully'
+            ], 200);
+        }
 
         return response()->json([
-            'message' => 'Uploaded successfully',
-            'path' => $path,
-            'url' => $url,
+            'message' => 'Failed to delete file'
+        ], 500);
+    }
+
+    /**
+     * List all uploaded images
+     */
+    public function index(): JsonResponse
+    {
+        $files = $this->storageService->listFiles();
+        
+        $images = array_map(function ($file) {
+            return [
+                'path' => $file,
+                'url' => $this->storageService->url($file),
+            ];
+        }, $files);
+
+        return response()->json([
+            'images' => $images,
+            'count' => count($images)
         ]);
     }
 }

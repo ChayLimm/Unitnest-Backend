@@ -10,6 +10,10 @@ use Illuminate\Validation\Rules;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private \App\Services\StorageService $storageService
+    ) {}
+
     public function index()
     {
         $users = User::with('role')->get();
@@ -24,11 +28,19 @@ class UserController extends Controller
             'password' => ['required', Rules\Password::defaults()],
             'phone' => 'nullable|string|max:20',
             'role_id' => 'required|exists:roles,id',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
 
-        $user = User::create($validated);
+        $user = User::create(collect($validated)->except('image')->toArray());
+
+        if ($request->hasFile('image')) {
+            $result = $this->storageService->upload($request->file('image'));
+            $user->update([
+                'profile_image_url' => $result['url'],
+            ]);
+        }
 
         return response()->json($user, 201);
     }
@@ -47,13 +59,21 @@ class UserController extends Controller
             'password' => ['sometimes', Rules\Password::defaults()],
             'phone' => 'nullable|string|max:20',
             'role_id' => 'sometimes|exists:roles,id',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         }
 
-        $user->update($validated);
+        $user->update(collect($validated)->except('image')->toArray());
+
+        if ($request->hasFile('image')) {
+            $result = $this->storageService->upload($request->file('image'));
+            $user->update([
+                'profile_image_url' => $result['url'],
+            ]);
+        }
 
         return response()->json($user);
     }
