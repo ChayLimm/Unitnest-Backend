@@ -52,4 +52,11 @@ class ServiceController extends Controller
         $service->delete();
         return response()->json(null, 204);
     }
+    public function getServiceByLandlord($landlordId){
+        $data = Service::where('landlord_id', '=', $landlordId)->get();
+        return response()->json([
+            "status" => 200,
+            "data" => $data
+        ]);
+    }
 }
