@@ -129,7 +129,6 @@ Route::prefix('rooms/{roomId}')->group(function () {
 
 // Report API
 Route::get('/reports', [ReportController::class, 'index']);
-Route::get('/reports/unpaid-rooms', [ReportController::class, 'unpaidRooms']);
 Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
 
 // Receipt PDF

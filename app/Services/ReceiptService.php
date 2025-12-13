@@ -6,13 +6,13 @@ use LaravelDaily\Invoices\Invoice;
 use LaravelDaily\Invoices\Classes\Buyer;
 use LaravelDaily\Invoices\Classes\Party;
 use LaravelDaily\Invoices\Classes\InvoiceItem;
-use Illuminate\Support\Env;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Services\BakongService;
 use App\Services\ConsumptionService;
 use App\Models\Payment;
 use App\Models\Receipt;
+use Illuminate\Support\Facades\Storage;
 
 class ReceiptService
 {
@@ -117,15 +117,28 @@ class ReceiptService
                 ],
             ]);
 
+            // Save PDF
+            $invoice->save('invoices');
+
+            // Get the file path
+            $filePath = storage_path('app/invoices/' . $customName . '.pdf');
+
+            // Get base64 content directly from Storage
+            $base64Content = base64_encode(Storage::disk('invoices')->get($customName . '.pdf'));
+
+            // Generate URL (adjust based on your storage configuration)
+            $url = Storage::disk('invoices')->url($customName . '.pdf');
+
             Receipt::create([
                 'receipt_name' => $customName . '.pdf',
                 'payment_id' => $payment_id,
             ]);
 
-            // Save PDF
-            $invoice->save('invoices');
-
-            return $invoice;
+            return [
+                'url' => $url,
+                'filename' => $customName . '.pdf',
+                'base64' => $base64Content,
+            ];
 
         } catch (\Throwable $e) {
             Log::error('Receipt generation failed', [

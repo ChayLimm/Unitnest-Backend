@@ -29,7 +29,7 @@ class ReceiptController extends Controller
 
         $invoice = ReceiptService::generate($validated['payment_id']);
 
-        return $invoice->stream();
+        return $invoice;
     }
 
     public function getAllReceiptsFromDisk(){

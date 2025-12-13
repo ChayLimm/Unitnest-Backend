@@ -8,27 +8,32 @@ use App\Models\Consumption;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\QueryException;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class ReportService
 {
     /**
-     * Get monthly report summary for all or a specific building.
+     * Get monthly report summary for a specific landlord's buildings.
      */
-    public function getMonthlyReport(?int $buildingId = null, ?string $month = null){ 
+    public function getMonthlyReport(int $landlordId, ?int $buildingId = null, ?string $month = null): array
+    { 
        return [
+            'landlord_id'    => $landlordId,
             'building_id'    => $buildingId,
-            'total_income'   => $this->getTotalIncome($buildingId, $month),
-            'breakdown'      => $this->getBreakdown($buildingId, $month),
-            'service_details'=> $this->getServiceDetails($buildingId, $month),
-            'unpaid'         => $this->getUnpaidTotals($buildingId, $month),
+            'total_income'   => $this->getTotalIncome($landlordId, $buildingId, $month),
+            'breakdown'      => $this->getBreakdown($landlordId, $buildingId, $month),
+            'service_details'=> $this->getServiceDetails($landlordId, $buildingId, $month),
+            'unpaid'         => $this->getUnpaidTotals($landlordId, $buildingId, $month),
         ];
     }
 
     /**
      * Prepare report data for CSV export.
      */
-    public function prepareCsvData(?int $buildingId = null, ?string $month = null): array{
-        $report = $this->getMonthlyReport($buildingId, $month);
+    public function prepareCsvData(int $landlordId, ?int $buildingId = null, ?string $month = null): array
+    {
+        $report = $this->getMonthlyReport($landlordId, $buildingId, $month);
 
         $rows = [];
 
@@ -60,8 +65,9 @@ class ReportService
     /**
      * Save CSV to storage (called by queued job).
      */
-    public function exportToCsv(array $data, ?int $buildingId = null, ?string $month = null): string{
-        $filename = 'reports/report_' . ($buildingId ?? 'all') . '_' . ($month ?? now()->format('Ymd_His')) . '.csv';
+    public function exportToCsv(array $data, int $landlordId, ?int $buildingId = null, ?string $month = null): string
+    {
+        $filename = 'reports/report_' . $landlordId . '_' . ($buildingId ?? 'all') . '_' . ($month ?? now()->format('Y_m_d_His')) . '.csv';
         $path = storage_path("app/{$filename}");
         
         if (!file_exists(dirname($path))) {
@@ -82,30 +88,26 @@ class ReportService
         return $path;
     }
     
-
-    private function getTotalIncome(?int $buildingId = null, ?string $month = null): array
+    private function getTotalIncome(int $landlordId, ?int $buildingId = null, ?string $month = null): array
     {
-        try{
-            $PaymentIncome = Payment::with('room')
-                ->where('status', 'completed')
-                ->when($buildingId, fn($q) => $q->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
-                ->when($month, fn($q) => $q->whereMonth('created_at', $month))
-                ->get()
-                ->sum(fn($payment) => $payment->room->price);
+        try {
+            // Optimized: Sum room price directly in DB using JOINs
+            $paymentIncome = Payment::join('rooms', 'payments.room_id', '=', 'rooms.id')
+                ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
+                ->where('payments.status', 'completed')
+                ->where('buildings.landlord_id', $landlordId)
+                ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
+                ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
+                ->sum('rooms.price');
             
-            $serviceIncome = PaymentItem::with('payment.room')
-                ->whereHas('payment', fn($p) => 
-                    $p->where('status', 'completed')
-                    ->when($buildingId, fn($q) => $q->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
-                    ->when($month, fn($q) => $q->whereMonth('created_at', $month))
-                )
-                ->get()
+            // Optimized: Sum subtotal directly in DB
+            $serviceIncome = $this->getServiceIncomeQuery($landlordId, $buildingId, $month)
                 ->sum('subtotal');
 
-            $totalIncome = $PaymentIncome + $serviceIncome;
+            $totalIncome = $paymentIncome + $serviceIncome;
 
             return [
-                "payment_income" => $PaymentIncome,
+                "payment_income" => $paymentIncome,
                 "service_income" => $serviceIncome,
                 "total_income" => $totalIncome,
             ];
@@ -113,97 +115,88 @@ class ReportService
             Log::error("Database query error in getTotalIncome: " . $e->getMessage());
             throw new Exception("Failed to retrieve total income due to a database error.");
         } catch (Exception $e) {
-            // unexpected logic or runtime error
             Log::error("Unexpected error in getTotalIncome(): " . $e->getMessage());
             throw new \RuntimeException('An unexpected error occurred while calculating income.');
         }
     }
 
-    private function getBreakdown(?int $buildingId, ?string $month = null){
-        
-            // Room total income
-            $roomTotal = Payment::with('room')
-                ->where('status', 'completed')
-                ->when($buildingId, fn($q) => $q->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
-                ->when($month, fn($q) => $q->whereMonth('created_at', $month))
-                ->get()
-                ->sum(fn($payment) => $payment->room->price);
+    private function getBreakdown(int $landlordId, ?int $buildingId = null, ?string $month = null): array
+    {
+        // Reuse optimized payment income query logic
+        $roomTotal = Payment::join('rooms', 'payments.room_id', '=', 'rooms.id')
+            ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
+            ->where('payments.status', 'completed')
+            ->where('buildings.landlord_id', $landlordId)
+            ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
+            ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
+            ->sum('rooms.price');
 
-            // Total water usage (m³)
-            $waterTotal = Consumption::query()
-                ->whereHas('service', fn($s) => $s->where('name', 'Water'))
-                ->whereHas('room.payments', fn($p) => 
-                    $p->where('status', 'completed')
-                    ->when($buildingId, fn($q) => $q->where('building_id', $buildingId))
-                    ->when($month, fn($q2) => $q2->whereMonth('created_at', $month))
-                )
-                ->sum('consumption');
+        // Optimized: Sum consumption directly
+        $waterTotal = $this->getConsumptionQuery('Water', $landlordId, $buildingId, $month)
+            ->sum('consumption');
 
+        // Optimized: Sum consumption directly
+        $electricityTotal = $this->getConsumptionQuery('Electricity', $landlordId, $buildingId, $month)
+            ->sum('consumption');
 
-            $electricityTotal = Consumption::query()
-                ->whereHas('service', fn($s) => $s->where('name', 'Electricity'))
-                ->whereHas('room.payments', fn($p) => 
-                    $p->where('status', 'completed')
-                    ->when($buildingId, fn($q) => $q->where('building_id', $buildingId))
-                    ->when($month, fn($q2) => $q2->whereMonth('created_at', $month))
-                )
-                ->sum('consumption');
+        // Optimized: Sum service total directly
+        $serviceTotal = $this->getServiceIncomeQuery($landlordId, $buildingId, $month)
+            ->sum('subtotal');
 
-            // Total service charges
-            $serviceTotal = PaymentItem::with('payment.room')
-                ->whereHas('payment', fn($p) => 
-                    $p->where('status', 'completed')
-                    ->when($buildingId, fn($q) => $q->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
-                    ->when($month, fn($q) => $q->whereMonth('created_at', $month))
-                )
-                ->get()
-                ->sum('subtotal');
-
-            // Return a detailed breakdown
-            return [
-                'room_total' => $roomTotal,
-                'service_total' => $serviceTotal,
-                'consumption' => [
-                    'water_total_m3' => $waterTotal,
-                    'electricity_total_kwh' => $electricityTotal,
-                ],
-                'total_income' => $roomTotal + $serviceTotal,
-            ];
-        
+        return [
+            'room_total' => $roomTotal,
+            'service_total' => $serviceTotal,
+            'consumption' => [
+                'water_total_m3' => $waterTotal,
+                'electricity_total_kwh' => $electricityTotal,
+            ],
+            'total_income' => $roomTotal + $serviceTotal,
+        ];
     }
 
-    private function getServiceDetails(?int $buildingId, ?string $month = null)
+    private function getServiceDetails(int $landlordId, ?int $buildingId = null, ?string $month = null)
     {
-        return Service::with(['paymentItems.payment.room'])
+        // Major Optimization: Group by service_id and aggregate in DB
+        // Avoids loading thousands of PaymentItem models into memory
+        return PaymentItem::selectRaw('service_id, SUM(quantity) as total_quantity, SUM(subtotal) as total_amount')
+            ->with(['service:id,name,unit_price']) // Eager load minimal service fields
+            ->whereHas('payment', fn($p) => 
+                $p->where('status', 'completed')
+                ->whereHas('room.building', function ($q) use ($landlordId) {
+                    $q->where('landlord_id', $landlordId);
+                })
+                ->when($buildingId, fn($q) => $q->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
+                ->when($month, fn($q) => $q->whereMonth('created_at', $month))
+            )
+            ->groupBy('service_id')
             ->get()
-            ->map(function ($service) use ($buildingId, $month) {
-                $filteredItems = $service->paymentItems->filter(fn($item) =>
-                    $item->payment->status === 'completed' &&
-                    (!$buildingId || $item->payment->room->building_id === $buildingId) &&
-                    (!$month || $item->payment->created_at->format('m') === $month)
-                );
-
+            ->map(function ($item) {
                 return (object)[
-                    'name' => $service->name,
-                    'quantity' => $filteredItems->sum('quantity') ?? 0,
-                    'unit_price' => $service->unit_price,
-                    'total_amount' => $filteredItems->sum('subtotal'),
+                    'name' => $item->service->name ?? 'Unknown Service',
+                    'quantity' => $item->total_quantity,
+                    'unit_price' => $item->service->unit_price ?? 0,
+                    'total_amount' => $item->total_amount,
                 ];
             });
     }
 
-    private function getUnpaidTotals(?int $buildingId, ?string $month = null)
+    private function getUnpaidTotals(int $landlordId, ?int $buildingId = null, ?string $month = null): array
     {
-        $unpaidPayments = Payment::with(['room', 'paymentItems'])
-            ->where('status', '!=', 'completed')
-            ->when($buildingId, fn($q) => $q->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
-            ->when($month, fn($q) => $q->whereMonth('created_at', $month))
-            ->get();
-
-        $unpaidRooms = $unpaidPayments->sum(fn($p) => $p->room->price);
+        // Optimized: Join for unpaid room sum
+        $unpaidRooms = Payment::join('rooms', 'payments.room_id', '=', 'rooms.id')
+            ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
+            ->where('payments.status', '!=', 'completed')
+            ->where('buildings.landlord_id', $landlordId)
+            ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
+            ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
+            ->sum('rooms.price');
         
-        $unpaidServices = PaymentItem::whereHas('payment', function ($q) use ($buildingId, $month) {
+        // Optimized: Sum unpaid services directly
+        $unpaidServices = PaymentItem::whereHas('payment', function ($q) use ($landlordId, $buildingId, $month) {
             $q->where('status', '!=', 'completed')
+              ->whereHas('room.building', function ($q) use ($landlordId) {
+                  $q->where('landlord_id', $landlordId);
+              })
               ->when($buildingId, fn($b) => $b->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
               ->when($month, fn($m) => $m->whereMonth('created_at', $month));
         })
@@ -213,5 +206,40 @@ class ReportService
             'unpaid_rooms' => $unpaidRooms,
             'unpaid_services' => $unpaidServices,
         ];
+    }
+
+    // --- Helper Methods ---
+
+    /**
+     * Get base query for service income (Payment items).
+     */
+    private function getServiceIncomeQuery(int $landlordId, ?int $buildingId, ?string $month): Builder
+    {
+        return PaymentItem::whereHas('payment', fn($p) => 
+                $p->where('status', 'completed')
+                ->whereHas('room.building', function ($q) use ($landlordId) {
+                    $q->where('landlord_id', $landlordId);
+                })
+                ->when($buildingId, fn($q) => $q->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
+                ->when($month, fn($q) => $q->whereMonth('created_at', $month))
+            );
+    }
+
+    /**
+     * Get consumption query for a specific service (Water/Electricity).
+     */
+    private function getConsumptionQuery(string $serviceName, int $landlordId, ?int $buildingId, ?string $month): Builder
+    {
+        // Join optimization can also be applied here if needed, but existing relation query is OK for now
+        // since we are just summing 'consumption' column.
+        return Consumption::whereHas('service', fn($s) => $s->where('name', $serviceName))
+            ->whereHas('room.building', function ($q) use ($landlordId) {
+                $q->where('landlord_id', $landlordId);
+            })
+            ->whereHas('room.payments', fn($p) => 
+                $p->where('status', 'completed')
+                ->when($buildingId, fn($q) => $q->where('building_id', $buildingId))
+                ->when($month, fn($q2) => $q2->whereMonth('created_at', $month))
+            );
     }
 }
