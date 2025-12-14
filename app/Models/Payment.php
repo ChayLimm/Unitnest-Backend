@@ -27,7 +27,7 @@ class Payment extends Model
     // Relationships
     public function tenant()
     {
-        return $this->belongsTo(User::class, 'tenant_id');
+        return $this->belongsTo(Tenant::class);
     }
 
     public function landlord()
