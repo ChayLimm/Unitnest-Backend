@@ -31,6 +31,7 @@ Route::group([
     Route::crud('payment-item', 'PaymentItemCrudController');
     Route::crud('notification', 'NotificationCrudController');
     Route::crud('telegrambot', 'TelegrambotCrudController');
+    Route::crud('tenant', 'TenantCrudController');
 }); // this should be the absolute last line of this file
 
 /**
