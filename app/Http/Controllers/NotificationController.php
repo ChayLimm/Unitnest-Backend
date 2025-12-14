@@ -7,6 +7,10 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Services\TelegramBotService;
+use App\Models\Telegrambot;
+use App\Enums\NotificationStatus;
+use App\Enums\NotificationType;
+use App\Services\NotificationService;
 
 class NotificationController extends Controller
 {
@@ -39,10 +43,14 @@ class NotificationController extends Controller
     public function update(Request $request, Notification $notification)
     {
         $validated = $request->validate([
-            'payment_id' => 'sometimes|exists:payments,id',
-            'notification_type' => 'nullable|string|max:50',
+            'payment_id' => 'nullable|exists:payments,id',
+            'notification_type' => 'nullable|enum:\App\Enums\NotificationType',
             'email' => 'nullable|email|max:255',
             'read' => 'nullable|boolean',
+            'status' => 'nullable|string|max:50',
+            'payload' => 'nullable|array',
+            'landlord_id' => 'nullable|exists:users,id',
+            'chat_id' => 'nullable|integer',
         ]);
 
         $notification->update($validated);
@@ -71,5 +79,65 @@ class NotificationController extends Controller
         return response()->json($notifications);
     }
 
+    // reject payment notification
+    public function rejectPaymentNotification(Request $request, Notification $notification, NotificationService $notificationService)
+    {   
+        // check
+        if ($notification->notification_type !== NotificationType::PAYMENT) {
+            return response()->json(['message' => 'Only payment notifications can be rejected.'], 400);
+        }
+        //
+        $notification->update(['status' => NotificationStatus::REJECTED]);
+
+        // notify
+        $chatId = $notification->chat_id;
+        $landlord = $notification->landlord_id;
+        $bot = TelegramBot::where('user_id', $landlord)->first();
+        $notify = $notificationService->notifyPaymentRejectedTenant($bot, $chatId);
+
+        return response()->json([
+            'message' => 'Rejection notification sent successfully.',
+            'notification' => $notification,
+            'notify' => $notify
+        ]);
+    }
+
+    // approve payment notification 
+    public function approvePaymentNotification(Request $request,){
+
+        return response()->json([
+            'message' => 'Approval notification sent successfully.',
+
+        ]);
+    }
+
+    // reject registration notification
+    public function rejectRegistrationNotification(Request $request, Notification $notification, NotificationService $notificationService)
+    {   
+        // check
+        if ($notification->notification_type !== NotificationType::REGISTRATION) {
+            return response()->json(['message' => 'Only registration notifications can be rejected.'], 400);
+        }
+        //
+        $notification->update(['status' => NotificationStatus::REJECTED]);
+
+        // notify
+        $chatId = $notification->chat_id;
+        $landlord = $notification->landlord_id;
+        $bot = TelegramBot::where('user_id', $landlord)->first();
+        $notify = $notificationService->notifyRegistrationRejectedTenant($bot, $chatId);
+
+        return response()->json([
+            'message' => 'Rejection notification sent successfully.',
+            'notification' => $notification,
+            'notify' => $notify
+        ]);
+    
+    }
+
+    // approve registration notification
+    public function approveRegistrationNotification(Request $request,){
+
+    }
  
 }
