@@ -22,6 +22,7 @@ class StoreTenantRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'landlord_id' => 'required',
             'first_name' => 'required|string|max:100',
             'last_name' => 'required|string|max:100',
             'email' => 'nullable|email|max:255|unique:tenants,email',

@@ -73,12 +73,13 @@ class TenantController extends Controller
     public function store(StoreTenantRequest $request): JsonResponse
     {
         // Get current authenticated user (landlord)
-        $landlordId = Auth::id();
+        // $landlordId = Auth::id();
         
         // Merge landlord_id with validated data
-        $data = array_merge($request->validated(), [
-            'landlord_id' => $landlordId,
-        ]);
+        // $data = array_merge($request->validated(), [
+        //     'landlord_id' => $landlordId,
+        // ]);
+        $data = $request->validated();
         
         $tenant = Tenant::create($data);
         
