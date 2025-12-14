@@ -21,6 +21,7 @@ class Room extends Model
         'room_number',
         'floor',
         'status',
+        'image_url',
     ];
 
     // Relationships

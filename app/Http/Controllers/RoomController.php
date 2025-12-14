@@ -4,11 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Contract;
 use App\Models\Room;
+use App\Models\Service;
 use App\Models\RoomService;
+use App\Services\StorageService;
 use Illuminate\Http\Request;
 
 class RoomController extends Controller
 {
+    public function __construct(private StorageService $storageService) {
+    }
+
     public function index(Request $request)
     {
         $perPage = $request->get('per_page', 15);
@@ -40,9 +45,17 @@ class RoomController extends Controller
             'room_number' => 'required|string|max:50',
             'floor' => 'nullable|string|max:50',
             'status' => 'nullable|string|max:50',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        $room = Room::create($validated);
+        $room = Room::create(collect($validated)->except('image')->toArray());
+
+        if ($request->hasFile('image')) {
+            $result = $this->storageService->upload($request->file('image'));
+            $room->update([
+                'image_url' => $result['url'],
+            ]);
+        }
 
         return response()->json($room, 201);
     }
@@ -69,9 +82,17 @@ class RoomController extends Controller
             'room_number' => 'sometimes|string|max:50',
             'floor' => 'nullable|string|max:50',
             'status' => 'nullable|string|max:50',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        $room->update($validated);
+        $room->update(collect($validated)->except('image')->toArray());
+
+        if ($request->hasFile('image')) {
+            $result = $this->storageService->upload($request->file('image'));
+            $room->update([
+                'image_url' => $result['url'],
+            ]);
+        }
 
         return response()->json($room);
     }
