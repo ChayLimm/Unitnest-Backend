@@ -173,10 +173,10 @@ class AgentService
         $seperator = "━━━━━━━━━━━━━━━━━━━━\n";
         //
         if (empty($generalRule)) {
-            // $generalRule = "No general rules found for this property!.";
-            $generalRule = "🏠 Rental Guidelines:\n" .
-                "• Rent is due on the 1st of each month 📅\n" .
-                "• Late payment penalty applies after 5 days ⚠️\n";
+            $generalRule = "No general rules found for this property!.";
+            // $generalRule = "🏠 Rental Guidelines:\n" .
+            //     "• Rent is due on the 1st of each month 📅\n" .
+            //     "• Late payment penalty applies after 5 days ⚠️\n";
         }
 
         return $header . $seperator . $generalRule . "\n" . $seperator . $footer;
@@ -197,9 +197,9 @@ class AgentService
         $seperator = "━━━━━━━━━━━━━━━━━━━━\n";
         //
         if (empty($contractRule)) {
-            // $contractRule = "No contract rules found for this property!.";
-            $contractRule = "⚖️ Legal Terms:\n" .
-                "• Contract duration: 12 months minimum 📆\n";
+            $contractRule = "No contract rules found for this property!.";
+            // $contractRule = "⚖️ Legal Terms:\n" .
+            //     "• Contract duration: 12 months minimum 📆\n";
         }
 
         return $header . $seperator . $contractRule . "\n" . $seperator . $footer;
@@ -250,10 +250,10 @@ class AgentService
         if ($notification) {
             switch ($notification->status){
                 case NotificationStatus::PENDING:
-                    return "🕒 Your registration is pending for landlord approval.Please wait for confirmation.";
+                    return "🕒 Registration is Processing...\n".$seperator."Your registration is pending for landlord approval, Please wait for confirmation.";
                 
                 case NotificationStatus::APPROVED:
-                    return "✅ You are already registered! If you need to update your info, please contact your landlord.";
+                    return "✅ You are already registered!\n".$seperator."If you need to update your info, please contact your landlord.";
                 
                 case NotificationStatus::REJECTED:
                     // allow to re-register

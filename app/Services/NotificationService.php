@@ -233,6 +233,70 @@ class NotificationService {
         return false;
     }
 
+    // handle notify payment rejected tenant
+    public function notifyPaymentRejectedTenant($bot, $chatId){
+        $message = "❌ Payment Rejection Notice:\n"
+                 . "━━━━━━━━━━━━━━━━━━━━\n"
+                 . "Your payment request has been rejected by your landlord.\n"
+                 . "━━━━━━━━━━━━━━━━━━━━\n"
+                 . "Please try again or contact your landlord for more information.";
+
+        if ($bot && $chatId) {
+            try {
+                $this->telegramBotService->sendMessage($bot, $chatId, $message);
+                return [
+                    'success' => true,
+                    'message' => 'Notification sent successfully.'
+                ];
+            } catch (\Exception $e) {
+                Log::error('Failed to send rejected message: ' . $e->getMessage());
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send notification.'
+                ];
+            }
+        }
+        return [
+            'success' => false,
+            'message' => 'Failed to send notification, missinfg bot or chat ID'
+        ];
+    }
+
+    // handle notify payment approved tenant
+
+
+    // hadnle notify registration rejected by landlord
+    public function notifyRegistrationRejectedTenant($bot, $chatId){
+        $message = "❌ Registration Rejection Notice:\n"
+                 . "━━━━━━━━━━━━━━━━━━━━\n"
+                 . "Your registration has been rejected by your landlord.\n"
+                 . "━━━━━━━━━━━━━━━━━━━━\n"
+                 . "Please try again or contact your landlord for more information.";
+
+        if ($bot && $chatId) {
+            try {
+                $this->telegramBotService->sendMessage($bot, $chatId, $message);
+                return [
+                    'success' => true,
+                    'message' => 'Notification sent successfully.'
+                ];
+            } catch (\Exception $e) {
+                Log::error('Failed to send rejected message: ' . $e->getMessage());
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send notification.'
+                ];
+            }
+        }
+        return [
+            'success' => false,
+            'message' => 'Failed to send notification, missinfg bot or chat ID'
+        ];
+    }
+
+
+    // handle notify reigstration approved by landlord
+
 
 }
 
