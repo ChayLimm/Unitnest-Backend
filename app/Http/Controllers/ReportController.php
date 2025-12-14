@@ -14,13 +14,8 @@ class ReportController extends Controller
 
     public function index(ReportRequest $request)
     {   
-        $user = $request->user();
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
         
-        $landlordId = $user->id;
-
+        $landlordId = $request->input('landlord_id');
         $buildingId = $request->input('building_id');
         $month = $request->input('month');
 
@@ -32,12 +27,7 @@ class ReportController extends Controller
 
     public function exportReportToCsv(ReportRequest $request)
     {
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-        // If the user has a landlord_id (e.g. is a sub-account), use it; otherwise use their own ID.
-        $landlordId = $user->id;
+        $landlordId = $request->input('landlord_id');
 
         // Dispatch job with MANDATORY landlord_id
         ExportReportToCsvJob::dispatch(
