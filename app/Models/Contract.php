@@ -34,6 +34,6 @@ class Contract extends Model
 
     public function tenant()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Tenant::class);
     }
 }
