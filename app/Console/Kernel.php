@@ -35,8 +35,8 @@ class Kernel extends ConsoleKernel
                 'timestamp' => now()
             ]);
         })->monthlyOn(1, '08:00') // Schedule to run on the 1st of every month at 8 AM
-          ->timezone('Asia/Phnom_Penh')
-          ->onQueue('payments');
+          ->timezone('Asia/Phnom_Penh');
+
     }
 
     /**
