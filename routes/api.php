@@ -82,6 +82,9 @@ Route::get('/v1/bakong', [BakongController::class, 'index']);
 Route::post('/v1/bakong/generate-khqr', [BakongController::class, 'generateKHQR']);
 Route::post('/v1/bakong/check-transaction-status', [BakongController::class, 'checkTransactionStatus']);
 
+//
+Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
+
 ///ai
 Route::apiResource('users', controller: UserController::class);
 Route::apiResource('bakong-accounts', BakongAccountController::class);
@@ -111,7 +114,6 @@ Route::get('payments/tenant/{tenantId}', [PaymentController::class, 'getTenantPa
 Route::patch('payments/{payment}/status', [PaymentController::class, 'updateStatus']);
 Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, 'getPaymentItems']);
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
-Route::get('notifications/unread', [NotificationController::class, 'getUnreadNotifications']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveContract']);
 Route::get('rooms/{roomId}/latestConsumption',[RoomController::class,'latestConsumption']);
