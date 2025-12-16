@@ -21,7 +21,6 @@ class PaymentController extends Controller
             'transaction', 
             'room.building',
             'paymentItems.service',
-            'receipt_url'
         ])->paginate($perPage, ['*'], 'page', $page);
         
         return response()->json([

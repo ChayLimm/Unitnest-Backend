@@ -24,10 +24,15 @@ class BakongController extends Controller
         ]);
 
         $bakongService = new BakongService();
-        $khqrData = $bakongService->generateKHQR($validated['amount'], $validated);
+        
+        if (!empty($validated['landlord_id'])) {
+             $bakongService->setBakongAccountFromLandlord($validated['landlord_id']);
+        }
+
+        $khqrData = $bakongService->generateKHQR($validated['amount']);
 
         return response()->json($khqrData);
-    } 
+    }
 
     // public function checkTransactionStatus(Request $request)
     // {
