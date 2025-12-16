@@ -41,6 +41,7 @@ class PaymentService{
         Log::info("consumptions count: " . count($consumptions));
         $status = PaymentStatus::PENDING->value;
         $setting = Setting::where('user_id', $this->landlord_id)->first();
+        $receiptService = new ReceiptService();
 
 
         Log::info("already init status {$status}");
@@ -90,40 +91,40 @@ class PaymentService{
         Log::info("room services : {$room->services}");
 
         foreach($room->services as $service){
-            if($service->name == 'electricity' || $service->name == "water"){
-                $matchingConsumption = null;
-                foreach($consumptions as $consumption) {
-                    if($consumption->service_id == $service->id) {
-                        $matchingConsumption = $consumption;
-                        break;
-                    }
-                }
+            // if($service->name == 'electricity' || $service->name == "water"){
+            //     $matchingConsumption = null;
+            //     foreach($consumptions as $consumption) {
+            //         if($consumption->service_id == $service->id) {
+            //             $matchingConsumption = $consumption;
+            //             break;
+            //         }
+            //     }
                 
-                if($matchingConsumption) {
-                    Log::info("Processing consumption for service: {$service->name}", [
-                        'consumption_id' => $matchingConsumption->id ?? 'new',
-                        'service_id' => $matchingConsumption->service_id
-                    ]);
+            //     if($matchingConsumption) {
+            //         Log::info("Processing consumption for service: {$service->name}", [
+            //             'consumption_id' => $matchingConsumption->id ?? 'new',
+            //             'service_id' => $matchingConsumption->service_id
+            //         ]);
                     
-                    // If consumption is not saved yet, save it
-                    if(!$matchingConsumption->id) {
-                        $matchingConsumption->save();
-                    }
+            //         // If consumption is not saved yet, save it
+            //         if(!$matchingConsumption->id) {
+            //             $matchingConsumption->save();
+            //         }
                     
-                    $consumption_usage = $this->consumptionService->getConsumptionUsage($room->id, $matchingConsumption->id) ?? $matchingConsumption->end_reading;
+            //         $consumption_usage = $this->consumptionService->getConsumptionUsage($room->id, $matchingConsumption->id) ?? $matchingConsumption->end_reading;
                     
-                    Log::info("consumption usage = " . $consumption_usage);
+            //         Log::info("consumption usage = " . $consumption_usage);
     
-                    PaymentItem::create([
-                        'payment_id' => $payment->id,
-                        'service_id' => $service->id,
-                        'service_name' => $service->name,
-                        'unit_price' => $service->unit_price,
-                        'quantity' => $consumption_usage,
-                        'subtotal' => $consumption_usage * $service->unit_price,
-                    ]);
-                }
-            } else {
+            //         PaymentItem::create([
+            //             'payment_id' => $payment->id,
+            //             'service_id' => $service->id,
+            //             'service_name' => $service->name,
+            //             'unit_price' => $service->unit_price,
+            //             'quantity' => $consumption_usage,
+            //             'subtotal' => $consumption_usage * $service->unit_price,
+            //         ]);
+            //     }
+            // } else {
                 // Flat-rate services (Parking, Wifi)
                 PaymentItem::create([
                     'payment_id' => $payment->id,
@@ -133,9 +134,48 @@ class PaymentService{
                     'quantity' => 1,
                     'subtotal' => $service->unit_price,
                 ]);
+            // }
+        }
+
+        $latest_consumption = $this->consumptionService->getLatestConsumptions($this->room->id);
+        //calculate consumption then create payment item
+        foreach($consumptions as $consumption){
+            if($consumption->type == "water"){
+                $quantity = $consumption->end_reading - $latest_consumption['water']->end_reading;
+                
+                PaymentItem::create([
+                    'payment_id' => $payment->id,
+                    'service_name' => $consumption->type,
+                    'unit_price' => $setting->water_price,
+                    'quantity' => $quantity,
+                    'subtotal' => ($quantity * $setting->water_price),
+                ]);
+                Consumption::create([
+                    'room_id' => $this->room->id,
+                    'end_reading'=> $consumption->end_reading,
+                    'photo_url'=>$consumption->photo_url,
+                    'consumption' =>  $quantity,
+                    'type'=> $consumption->type,
+                ]);
+            } else {
+                $quantity = $consumption->end_reading - $latest_consumption['electricity']->end_reading;
+                
+                PaymentItem::create([
+                    'payment_id' => $payment->id,
+                    'service_name' => $consumption->type,
+                    'unit_price' => $setting->electricity_price,
+                    'quantity' => $quantity,
+                    'subtotal' => ($quantity * $setting->electricity_price),
+                ]);
+                Consumption::create([
+                    'room_id' => $this->room->id,
+                    'end_reading'=> $consumption->end_reading,
+                    'photo_url'=>$consumption->photo_url,
+                    'consumption' =>  $quantity,
+                    'type'=> $consumption->type,
+                ]);
             }
         }
-        
         Log::info("done processing payment items");
                
         //last payment
@@ -169,6 +209,9 @@ class PaymentService{
             // Handle error
             Log::error("Bakong KHQR generation failed: " . $responseData['message']);
         }
+
+        //generate reciept
+        $receiptService->generate($payment->id);
         
         return response()->json([
             'status' => 200,

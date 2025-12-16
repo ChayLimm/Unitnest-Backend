@@ -16,6 +16,8 @@ class Setting extends Model
         'general_rules',
         'contract_rules',
         'khr_currency',
+        'water_price',
+        'electricity_price'
     ];
 
     // Relationships

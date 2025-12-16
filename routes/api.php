@@ -116,6 +116,7 @@ Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, '
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveContract']);
+Route::get('rooms/{roomId}/latestConsumption',[RoomController::class,'latestConsumption']);
 Route::get('landlord/{id}/tenants',[TenantController::class,'getByLandlord']);
 // Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
 Route::get('services/landlord/{landlordId}',[ServiceController::class,'getServiceByLandlord']);

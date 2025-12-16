@@ -18,7 +18,7 @@ class ConsumptionService{
         $consumption = Consumption::find($consumption_id);
 
         $previous_consumption = $room->consumptions()
-            ->where('service_id', "=",$consumption->service_id) // Default is '='
+            ->where('type', "=",$consumption->type) // Default is '='
             ->where('created_at', '<', $consumption->created_at)
             ->orderBy('created_at', 'desc')
             ->first();
@@ -49,5 +49,21 @@ class ConsumptionService{
         return null;
     }
     
-    
+    public function getLatestConsumptions($roomId)
+    {
+        $latestWater = Consumption::where('room_id', $roomId)
+            ->where('type', 'water')
+            ->latest('created_at')
+            ->first();
+
+        $latestElectricity = Consumption::where('room_id', $roomId)
+            ->where('type', 'electricity')
+            ->latest('created_at')
+            ->first();
+
+        return [
+            'water' => $latestWater,
+            'electricity' => $latestElectricity
+        ];
+    }
 }
