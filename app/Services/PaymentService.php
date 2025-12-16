@@ -41,6 +41,7 @@ class PaymentService{
         Log::info("consumptions count: " . count($consumptions));
         $status = PaymentStatus::PENDING->value;
         $setting = Setting::where('user_id', $this->landlord_id)->first();
+        $receiptService = new ReceiptService();
 
 
         Log::info("already init status {$status}");
@@ -208,6 +209,9 @@ class PaymentService{
             // Handle error
             Log::error("Bakong KHQR generation failed: " . $responseData['message']);
         }
+
+        //generate reciept
+        $receiptService->generate($payment->id);
         
         return response()->json([
             'status' => 200,
