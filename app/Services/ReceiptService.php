@@ -224,7 +224,7 @@ class ReceiptService
                 "new" => $cons->end_reading,
                 "old" => $previous ? $previous->end_reading : 0,
                 "total" => $usage,
-                "unit" => $cons->service->unit_name,
+                "unit" =>$cons->type == "water" ? "m3" : "kwh" // $cons->service->unit_name,
             ];
 
             Log::info("consumption usage for service {$cons->service_id} is {$usage}");
