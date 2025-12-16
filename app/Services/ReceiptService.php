@@ -124,7 +124,7 @@ class ReceiptService
                 'receipt_url' => $url,
             ]);
 
-            self::checkPendingReceipts($payload['landlord_id'] ?? 0);
+            // self::checkPendingReceipts($payload['landlord_id'] ?? 0);
 
             return [
                 'url' => $url,
