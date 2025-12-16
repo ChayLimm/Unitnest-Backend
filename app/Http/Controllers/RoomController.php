@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\Room;
 use App\Models\Service;
 use App\Models\RoomService;
+use App\Services\ConsumptionService;
 use App\Services\StorageService;
 use Illuminate\Http\Request;
 
@@ -258,6 +259,16 @@ class RoomController extends Controller
         return response()->json([
             "contract" => $contract,
             "tenant" => $contract->tenant // Assuming you have a relationship defined
+        ]);
+    }
+    public function latestConsumption($roomId)
+    {
+        $consumptionService = new ConsumptionService();
+        $latest = $consumptionService->getLatestConsumptions($roomId);
+        
+        return response()->json([
+            'water' => $latest['water'],
+            'electricity' => $latest['electricity']
         ]);
     }
 

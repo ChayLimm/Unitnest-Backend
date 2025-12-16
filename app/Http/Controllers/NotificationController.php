@@ -73,7 +73,7 @@ class NotificationController extends Controller
     public function getUnreadNotifications()
     {
         $notifications = Notification::where('read', false)
-            ->with('payment')
+            // ->with('payment')
             ->get();
         
         return response()->json($notifications);
@@ -82,6 +82,11 @@ class NotificationController extends Controller
     // reject payment notification
     public function rejectPaymentNotification(Request $request, Notification $notification, NotificationService $notificationService)
     {   
+        // check if read true / marked as read, if not
+        if (!$notification->read){
+            $notification->update(['read' => true]);
+        }
+
         // check
         if ($notification->notification_type !== NotificationType::PAYMENT) {
             return response()->json(['message' => 'Only payment notifications can be rejected.'], 400);
@@ -103,7 +108,7 @@ class NotificationController extends Controller
     }
 
     // approve payment notification 
-    public function approvePaymentNotification(Request $request,){
+    public function approvePaymentNotification(Request $request, Notification $notification, NotificationService $notificationService){
 
         return response()->json([
             'message' => 'Approval notification sent successfully.',
@@ -114,6 +119,10 @@ class NotificationController extends Controller
     // reject registration notification
     public function rejectRegistrationNotification(Request $request, Notification $notification, NotificationService $notificationService)
     {   
+        //
+        if (!$notification->read) {
+            $notification->update(['read' => true]);
+        }  
         // check
         if ($notification->notification_type !== NotificationType::REGISTRATION) {
             return response()->json(['message' => 'Only registration notifications can be rejected.'], 400);
@@ -136,8 +145,8 @@ class NotificationController extends Controller
     }
 
     // approve registration notification
-    public function approveRegistrationNotification(Request $request,){
-
+    public function approveRegistrationNotification(Request $request, Notification $notification){
+        
     }
- 
+    
 }
