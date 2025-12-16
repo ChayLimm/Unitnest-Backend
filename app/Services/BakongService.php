@@ -38,7 +38,6 @@ class BakongService
     {
         DB::beginTransaction();
 
-
         try{
             $individualInfo = new IndividualInfo(
                 bakongAccountID: $this->bakong_account,

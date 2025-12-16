@@ -21,6 +21,7 @@ class Payment extends Model
         'qr_code',
         'deep_link',
         'md5',
+        'receipt_url',
     ];
  
 
