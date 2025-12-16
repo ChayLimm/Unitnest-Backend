@@ -18,6 +18,7 @@ class Consumption extends Model
         'end_reading',
         'photo_url',
         'consumption',
+        'type'
     ];
 
     // Relationships
