@@ -187,12 +187,21 @@ class ReceiptService
         $items = [];
 
         foreach($payment_items as $item){
-            $service = $item->service;
-            $items[] = [
-                "name" => $service->name,
-                "price" => $item->unit_price,
-                "quantity" => $item->quantity
-            ];
+            if($item->service ==null){
+                $items[] = [
+                    "name" => $item->service_name,
+                    "price" => $item->unit_price,
+                    "quantity" => $item->quantity
+                ];
+            }else{
+                $service = $item->service;
+                $items[] = [
+                    "name" =>   $service->name,
+                    "price" => $item->unit_price,
+                    "quantity" => $item->quantity
+                ];
+            }
+           
         };
 
         $readingsInfo = [];
