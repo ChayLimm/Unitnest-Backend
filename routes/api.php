@@ -127,6 +127,9 @@ Route::prefix('rooms/{roomId}')->group(function () {
     });
 });
 
+// Payment routes
+Route::get('payments/landlord/{landlordId}', [PaymentController::class, 'getPaymentByLandlord']);
+
 // Report API
 Route::get('/reports', [ReportController::class, 'index']);
 Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
