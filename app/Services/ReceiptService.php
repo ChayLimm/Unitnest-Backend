@@ -143,6 +143,7 @@ class ReceiptService
 
     public static function checkPendingReceipts(int $landlordId): array
     {
+        Log::info("checkPendingReceipts called for landlord: {$landlordId}");
         $payments = Payment::where('landlord_id', $landlordId)
             ->where('status', 'pending')
             ->whereNotNull('md5')
@@ -158,6 +159,7 @@ class ReceiptService
         $md5List = $payments->pluck('md5')->toArray();
 
         // Dispatch your existing job
+        Log::info("Dispatching CheckTransactionStatusJob for " . count($md5List) . " receipts.");
         CheckTransactionStatusJob::dispatch($md5List, 60);
 
         return [
