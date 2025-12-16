@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('consumptions', function (Blueprint $table) {
-            $table->enum('type', ['water', 'electricity'])->after('service_id');
+            $table->enum('type', ['water', 'electricity'])->nullable()->after('service_id');
         });
     }
 
