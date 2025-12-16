@@ -20,7 +20,7 @@ class PaymentController extends Controller
             'landlord', 
             'transaction', 
             'room.building',
-            'paymentItems.service'
+            'paymentItems.service',
         ])->paginate($perPage, ['*'], 'page', $page);
         
         return response()->json([
@@ -47,6 +47,7 @@ class PaymentController extends Controller
             'qr_code' => 'nullable|string|max:255',
             'md5' => 'nullable|string|max:255',
             'deep_link' => 'nullable|string|max:255',
+            'receipt_url' => 'nullable|string|max:255',
         ]);
 
         $payment = Payment::create($validated);
@@ -62,7 +63,8 @@ class PaymentController extends Controller
             'transaction', 
             'room.building',
             'paymentItems.service',
-            'notifications'
+            'notifications',
+            'receipt_url'
         ]);
         
         return response()->json($payment);
@@ -79,6 +81,7 @@ class PaymentController extends Controller
             'qr_code' => 'nullable|string|max:255',
             'md5' => 'nullable|string|max:255',
             'deep_link' => 'nullable|string|max:255',
+            'receipt_url' => 'nullable|string|max:255',
         ]);
 
         $payment->update($validated);

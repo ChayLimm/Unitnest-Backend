@@ -34,12 +34,30 @@ class BakongService
         $this->bakong_mobile_number = $accountInfo['bakong_mobile_number'] ?? $this->bakong_mobile_number;
     }
 
+    public function setBakongAccountFromLandlord(int $landlord_id){
+        $bakongAccount = \App\Models\BakongAccount::where('landlord_id', $landlord_id)->first();
+        
+        if (!$bakongAccount) {
+            // Log::warning('Bakong account not found for landlord ' . $landlord_id . ', using default.');
+            // throw new \Exception('Bakong account not found for this landlord');
+            return; // Or throw exception if strictly required
+        }
+
+        $this->bakong_account = $bakongAccount->bakong_id;
+        $this->bakong_merchant_name = $bakongAccount->bakong_name;
+        $this->bakong_merchant_city = $bakongAccount->bakong_location;
+    }
+
     public function generateKHQR(float $amount)
     {
         DB::beginTransaction();
 
-
         try{
+            Log::info("Starting KHQR generation for amount: {$amount}", [
+                'merchant_name' => $this->bakong_merchant_name,
+                'bakong_account' => $this->bakong_account
+            ]);
+
             $individualInfo = new IndividualInfo(
                 bakongAccountID: $this->bakong_account,
                 merchantName: $this->bakong_merchant_name,
@@ -72,6 +90,8 @@ class BakongService
                     'appDeepLinkCallback' => $sourceInfo->appDeepLinkCallback
                 ],
             ];
+            Log::info("Requesting Bakong Deep Link", ['url' => $url]);
+
             // Request for Dev only, update when Production
             $response1 = Http::withoutVerifying()->withHeaders([
                 'Content-Type' => 'application/json',
@@ -95,6 +115,11 @@ class BakongService
 
             // Dispatch queued job to check transaction asynchronously
             // CheckTransactionStatusJob::dispatch($md5);
+
+            Log::info("KHQR Generated Successfully", [
+                'md5' => $md5,
+                'deepLink' => $deepLink
+            ]);
 
             return response()->json([
                 'success' => true,

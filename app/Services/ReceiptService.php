@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 use App\Services\BakongService;
 use App\Services\ConsumptionService;
 use App\Models\Payment;
-use App\Models\Receipt;
+use App\Jobs\CheckTransactionStatusJob;
 use Illuminate\Support\Facades\Storage;
 
 class ReceiptService
@@ -88,18 +88,9 @@ class ReceiptService
 
             // Request KHQR only if generate_qr is true
             $qrBase64 = null;
-            if (!empty($payload['generate_qr'])) {
-                $bakong_payload = self::requestBakongQR($totalAmount);
-
-                $bakongData = is_object($bakong_payload)
-                    ? $bakong_payload->getData(true)
-                    : $bakong_payload;
-
-                $qrcode = $bakongData['data']['qr_code'] ?? null;
-
-                // Get QR from microservice if not provided
+            if (!empty($payload['qr_code'])) {
                 $qrBase64 = self::fetchQRFromMicroservice([
-                    "qr_code" => $qrcode
+                    "qr_code" => $payload['qr_code']
                 ]);
             }
 
@@ -129,10 +120,11 @@ class ReceiptService
             // Generate URL (adjust based on your storage configuration)
             $url = Storage::disk('invoices')->url($customName . '.pdf');
 
-            Receipt::create([
-                'receipt_name' => $customName . '.pdf',
-                'payment_id' => $payment_id,
+            Payment::where('id', $payment_id)->update([
+                'receipt_url' => $url,
             ]);
+
+            self::checkPendingReceipts($payload['landlord_id'] ?? 0);
 
             return [
                 'url' => $url,
@@ -149,79 +141,30 @@ class ReceiptService
         }
     }
 
-    public function e_receipt_format_test($payment_id){
-        $payment = Payment::find($payment_id);
+    public static function checkPendingReceipts(int $landlordId): array
+    {
+        Log::info("checkPendingReceipts called for landlord: {$landlordId}");
+        $payments = Payment::where('landlord_id', $landlordId)
+            ->where('status', 'pending')
+            ->whereNotNull('md5')
+            ->get();
 
-        if(!$payment){
-            throw new \Exception("Payment not found");
+        if ($payments->isEmpty()) {
+            return [
+                'dispatched' => false,
+                'count' => 0,
+            ];
         }
 
-        $tenant_info = $payment->tenant;
-        $landlord_info = $payment->landlord;
+        $md5List = $payments->pluck('md5')->toArray();
 
-        $room_info = $payment->room;
-
-        $building_info = $room_info->building;
-
-        $payment_items = $payment->paymentItems;
-
-        $items = [];
-        $readingsInfo = [];
-
-        foreach($payment_items as $item){
-            $service = $item->service;
-            $items[] = [
-                "name" => $service->name,
-                "price" => $item->unit_price,
-                "quantity" => $item->quantity
-            ];
-        };
-
-        $consumptions = $room_info->consumptions()->orderBy('created_at')->get();
-
-        $consumptionService = new ConsumptionService();
-
-        foreach($consumptions as $cons){
-            $usage = $consumptionService->getConsumptionUsage($room_info->id, $cons->id) ?? $cons->end_reading;
-
-            $previous = $room_info->consumptions()
-                ->where('service_id', $cons->service_id)
-                ->where('created_at', '<', $cons->created_at)
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            $readingsInfo[] = [
-                "item" => $cons->service->name,
-                "new" => $cons->end_reading,
-                "old" => $previous ? $previous->end_reading : 0,
-                "total" => $usage,
-                "unit" => $cons->service->unit_name,
-            ];
-
-            Log::info("consumption usage for service {$cons->service_id} is {$usage}");
-        }
-
-        
+        // Dispatch your existing job
+        Log::info("Dispatching CheckTransactionStatusJob for " . count($md5List) . " receipts.");
+        CheckTransactionStatusJob::dispatch($md5List, 60);
 
         return [
-            "id" => $payment->id,
-            "landlord_name" => $landlord_info->name,
-            "landlord_email" => $landlord_info->email,
-            "landlord_phone" => $landlord_info->phonenumber,
-            "landlord_address" => $building_info->address,
-            "landlord_building" => $building_info->name,
-
-            "tenant_name" => $tenant_info->name,
-            "tenant_email" => $tenant_info->email,
-            "tenant_phone" => $tenant_info->phonenumber,
-            "tenant_room" => $room_info->room_number,
-            "tenant_room_floor" => $room_info->floor,
-
-            "items" => $items,
-
-            "readings" => $readingsInfo,
-
-            "generate_qr" => true,
+            'dispatched' => true,
+            'count' => count($md5List),
         ];
     }
 
@@ -282,6 +225,7 @@ class ReceiptService
         return [
             "id" => $payment->id,
             "room_id" => $room_info->id,
+            "landlord_id" => $landlord_info->id,
             "landlord_name" => $landlord_info->name,
             "landlord_email" => $landlord_info->email,
             "landlord_phone" => $landlord_info->phonenumber,
@@ -298,7 +242,7 @@ class ReceiptService
 
             "readings" => $readingsInfo,
 
-            "generate_qr" => true,
+            "qr_code" => $payment->qr_code,
         ];
     }
 
