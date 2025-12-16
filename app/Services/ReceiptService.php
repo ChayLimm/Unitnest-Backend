@@ -220,7 +220,7 @@ class ReceiptService
                 ->first();
 
             $readingsInfo[] = [
-                "item" => $cons->service->name,
+                "item" => $cons->service->name?? $cons->type,
                 "new" => $cons->end_reading,
                 "old" => $previous ? $previous->end_reading : 0,
                 "total" => $usage,
