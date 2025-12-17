@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Http;
 use App\Services\BakongService;
 use App\Services\ConsumptionService;
 use App\Models\Payment;
+use App\Models\Consumption;
 use App\Jobs\CheckTransactionStatusJob;
 use Illuminate\Support\Facades\Storage;
 
@@ -129,7 +130,7 @@ class ReceiptService
             return [
                 'url' => $url,
                 'filename' => $customName . '.pdf',
-                'base64' => $base64Content,
+                // 'base64' => $base64Content,
             ];
 
         } catch (\Throwable $e) {
@@ -205,29 +206,39 @@ class ReceiptService
         };
 
         $readingsInfo = [];
-
-        $consumptions = $room_info->consumptions()->orderBy('created_at')->get();
-
         $consumptionService = new ConsumptionService();
 
-        foreach($consumptions as $cons){
-            $usage = $consumptionService->getConsumptionUsage($room_info->id, $cons->id) ?? $cons->end_reading;
+        foreach ($payment_items as $item) {
+            if ($item->consumption_id) {
+                // Eager load or access relationship
+                $consumption = $item->consumption;
+                
+                if ($consumption) {
+                    // Calculate usage using the service
+                    $usageResponse = $consumptionService->getConsumptionUsage($room_info->id, $consumption->id);
+                    
+                    // Extract data - ConsumptionService returns a JsonResponse
+                    $responseData = $usageResponse->getData(true); // true returns array
 
-            $previous = $room_info->consumptions()
-                ->where('service_id', $cons->service_id)
-                ->where('created_at', '<', $cons->created_at)
-                ->orderBy('created_at', 'desc')
-                ->first();
+                    // Check if response contains 'usage', otherwise default to 0 layout
+                    $usage = $responseData['usage'] ?? 0;
+                    $previousReading = $responseData['previous_reading'] ?? $responseData['start_reading'] ?? 0;
+                    
+                    $unit = 'unit'; 
+                    if ($consumption->type === 'water') $unit = 'm3';
+                    if ($consumption->type === 'electricity') $unit = 'kwh';
 
-            $readingsInfo[] = [
-                "item" => $cons->service->name?? $cons->type,
-                "new" => $cons->end_reading,
-                "old" => $previous ? $previous->end_reading : 0,
-                "total" => $usage,
-                "unit" =>$cons->type == "water" ? "m3" : "kwh" // $cons->service->unit_name,
-            ];
-
-            Log::info("consumption usage for service {$cons->service_id} is {$usage}");
+                    $readingsInfo[] = [
+                        "item" => $consumption->service->name ?? $consumption->type,
+                        "new" => $consumption->end_reading,
+                        "old" => $previousReading,
+                        "total" => $usage,
+                        "unit" => $unit
+                    ];
+                    
+                    Log::info("Receipt generation: Consumption usage for item {$item->id} is {$usage}", ['response' => $responseData]);
+                }
+            }
         }
 
 
