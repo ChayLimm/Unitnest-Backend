@@ -117,11 +117,14 @@ class NotificationController extends Controller
     }
 
     // approve payment notification 
-    public function approvePaymentNotification(Request $request, Notification $notification, NotificationService $notificationService){
+    public function approvePaymentNotification($notificationId){
+        $telegramBot = new TelegramBotService();
+        $notificationService = new NotificationService($telegramBot);
+        $res = $notificationService->approvalePaymentRequest($notificationId);
 
         return response()->json([
             'message' => 'Approval notification sent successfully.',
-
+            'res' => $res
         ]);
     }
 

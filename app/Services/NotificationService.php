@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Consumption;
+use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Telegrambot;
@@ -296,7 +299,71 @@ class NotificationService {
 
 
     // handle notify reigstration approved by landlord
+    public function approvalePaymentRequest($notificationId){
+        //validate
+        $notification = Notification::find($notificationId);
+        if(!($notification->notification_type == NotificationType::PAYMENT)){
+            return response()->json([
+                "message"=>"Must be Payment type",
+            ]);
+        }
+     
+        $paylaod = $notification->payload['result'];
+        //find room id
+        $tenant = Tenant::where('telegram_id', $notification->chat_id)->first();
+
+        if ($tenant && $tenant->contract) {
+            $roomId = $tenant->contract->room_id;
+        } else {
+            $roomId = null; // or throw exception, etc.
+            return response()->json([
+                "message"=>"room is not found in approving payment request"
+            ]);
+        }
+        $paymentService = new PaymentService( $roomId);
+
+        $water_consumption = new Consumption([
+            "room_id" => $roomId,
+            'end_reading' => $paylaod['water_meter'],
+            'photo_url'=> $paylaod['water_image'],
+            'type' => "water"
+        ]) ;
+        $electricity_consumption = new Consumption([
+            "room_id" => $roomId,
+            'end_reading' => $paylaod['electricity_meter'],
+            'photo_url'=> $paylaod['electricity_image'],
+            'type' => "electricity"
+        ]);
+        $data = [$water_consumption,$electricity_consumption];
+        $response =  $paymentService->processPayment(false,false,   ...$data );
+        // $rceiptUrl = $paymentData['payment']['receipt_url'];
+        $receiptUrl = $response->original['payment']['receipt_url'];
+        
+        $telegramSerivce = new TelegramBotService();
+        $user = User::find($notification->landlord_id);
+        $bot = $user->telegrambots;
+        $telegramSerivce->sendMessage(
+            $bot,
+            $paylaod['chat_id'],
+            "Your Payment have been APPROVED, please proceed the payment via receipt download bellow : $receiptUrl"
+        );
+        $notification->update([
+            "read" => true,
+            "status"=> NotificationStatus::APPROVED
+        ]);
+        
+        return $response;
+
+    }
 
 
+    // protected $fillable = [
+    //     'room_id',
+    //     'service_id',
+    //     'end_reading',
+    //     'photo_url',
+    //     'consumption',
+    //     'type'
+    // ];
 }
 
