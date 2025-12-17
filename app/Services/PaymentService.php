@@ -179,13 +179,14 @@ class PaymentService{
         }
 
         //generate reciept
-        $receiptService->generate($payment->id);
+        $receipt = $receiptService->generate($payment->id);
 
         
         
         return response()->json([
             'status' => 200,
             'payment_id' => $payment->id,
+            'receipt_url'=> $receipt['url'],            ,
             'payment' => $payment,
             'paymnet_items'=> $payment->paymentItems,
             'total' => $total
