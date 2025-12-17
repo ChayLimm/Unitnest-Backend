@@ -20,6 +20,7 @@ use App\Http\Controllers\UserController;
 use App\Models\PaymentItem;
 use App\Models\Service;
 use App\Models\Telegrambot;
+use App\Services\ConsumptionService;
 use App\Services\OllamaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -118,6 +119,7 @@ Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
 Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveContract']);
 Route::get('rooms/{roomId}/latestConsumption',[RoomController::class,'latestConsumption']);
 Route::get('landlord/{id}/tenants',[TenantController::class,'getByLandlord']);
+Route::get('rooms/{roomid}/consumption/{id}',[ConsumptionService::class,'getConsumptionUsage']);
 // Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
 Route::get('services/landlord/{landlordId}',[ServiceController::class,'getServiceByLandlord']);
 Route::prefix('rooms/{roomId}')->group(function () {    

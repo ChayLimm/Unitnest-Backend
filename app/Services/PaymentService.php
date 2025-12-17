@@ -143,37 +143,40 @@ class PaymentService{
             if($consumption->type == "water"){
                 $quantity = $consumption->end_reading - $latest_consumption['water']->end_reading;
                 
+              
+                $temp = Consumption::create([
+                    'room_id' => $this->room->id,
+                    'end_reading'=> $consumption->end_reading,
+                    'photo_url'=>$consumption->photo_url,
+                    'consumption' =>  $quantity,
+                    'type'=> $consumption->type,
+                ]);
                 PaymentItem::create([
                     'payment_id' => $payment->id,
+                    'consumption_id'=>  $temp->id,
                     'service_name' => $consumption->type,
                     'unit_price' => $setting->water_price,
                     'quantity' => $quantity,
                     'subtotal' => ($quantity * $setting->water_price),
                 ]);
-                Consumption::create([
+            } else {
+                $quantity = $consumption->end_reading - $latest_consumption['electricity']->end_reading;
+                $temp= Consumption::create([
                     'room_id' => $this->room->id,
                     'end_reading'=> $consumption->end_reading,
                     'photo_url'=>$consumption->photo_url,
                     'consumption' =>  $quantity,
                     'type'=> $consumption->type,
                 ]);
-            } else {
-                $quantity = $consumption->end_reading - $latest_consumption['electricity']->end_reading;
-                
                 PaymentItem::create([
                     'payment_id' => $payment->id,
+                    'consumption_id'=>  $temp->id,
                     'service_name' => $consumption->type,
                     'unit_price' => $setting->electricity_price,
                     'quantity' => $quantity,
                     'subtotal' => ($quantity * $setting->electricity_price),
                 ]);
-                Consumption::create([
-                    'room_id' => $this->room->id,
-                    'end_reading'=> $consumption->end_reading,
-                    'photo_url'=>$consumption->photo_url,
-                    'consumption' =>  $quantity,
-                    'type'=> $consumption->type,
-                ]);
+              
             }
         }
         Log::info("done processing payment items");
@@ -211,7 +214,9 @@ class PaymentService{
         }
 
         //generate reciept
-        $receiptService->generate($payment->id);
+        // $receiptService->generate($payment->id);
+
+        
         
         return response()->json([
             'status' => 200,
