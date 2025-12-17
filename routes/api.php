@@ -130,8 +130,11 @@ Route::prefix('rooms/{roomId}')->group(function () {
     });
 });
 
+// Payment routes
+Route::get('payments/landlord/{landlordId}', [PaymentController::class, 'getPaymentByLandlord']);
+
 // Report API
-Route::get('/reports', [ReportController::class, 'index']);
+Route::get('/reports/{landlordId}', [ReportController::class, 'index']);
 Route::post('/reports/export-csv', [ReportController::class, 'exportReportToCsv']);
 
 // Receipt PDF
@@ -151,3 +154,4 @@ Route::patch('notifications/{notification}/approve-payment', [NotificationContro
 Route::patch('notifications/{notification}/reject-payment', [NotificationController::class, 'rejectPaymentNotification']);
 Route::patch('notifications/{notification}/approve-registration', [NotificationController::class, 'approveRegistrationNotification']);
 Route::patch('notifications/{notification}/reject-registration', [NotificationController::class, 'rejectRegistrationNotification']);
+Route::get('notifications/landlord/{landlord_id}', [NotificationController::class, 'getNotificationsByLandlord']);

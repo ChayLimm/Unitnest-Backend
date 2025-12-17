@@ -64,6 +64,15 @@ class NotificationController extends Controller
         return response()->json(null, 204);
     }
 
+    public function getNotificationsByLandlord(Request $request, $landlordId)
+    {
+
+        $notifications = Notification::where('landlord_id', $landlordId)
+            ->get();
+        
+        return response()->json($notifications);
+    }
+
     public function markAsRead(Notification $notification)
     {
         $notification->update(['read' => true]);

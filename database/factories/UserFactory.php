@@ -29,6 +29,13 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role_id' => \App\Models\Role::factory(),
+            'telegram_id' => fake()->unique()->numerify('##########'),
+            'username' => fake()->userName(),
+            'phonenumber' => fake()->phoneNumber(),
+            'identify_id' => fake()->unique()->numerify('#########'),
+            'profile_image_url' => fake()->imageUrl(),
+            'identify_image_url' => fake()->imageUrl(),
         ];
     }
 

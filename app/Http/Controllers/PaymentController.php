@@ -95,6 +95,28 @@ class PaymentController extends Controller
         return response()->json(null, 204);
     }
 
+    public function getPaymentByLandlord(Request $request, $landlordId)
+    {
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
+        $payments = Payment::where('landlord_id', $landlordId)
+            ->with(['room.building', 'paymentItems.service'])
+            ->paginate($perPage, ['*'], 'page', $page);
+        
+        return response()->json([
+            'data' => $payments->items(),
+            'pagination' => [
+                'current_page' => $payments->currentPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
+                'last_page' => $payments->lastPage(),
+                'from' => $payments->firstItem(),
+                'to' => $payments->lastItem(),
+            ]
+        ]);
+    }
+
     public function getTenantPayments(Request $request, $tenantId)
     {
         $perPage = $request->get('per_page', 15);
