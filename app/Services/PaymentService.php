@@ -180,7 +180,7 @@ class PaymentService{
 
         //generate reciept
         $receipt = $receiptService->generate($payment->id);
-
+        $payment->refresh();
         
         
         return response()->json([

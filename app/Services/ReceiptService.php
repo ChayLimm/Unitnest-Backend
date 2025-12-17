@@ -115,7 +115,7 @@ class ReceiptService
             $filePath = storage_path('app/invoices/' . $customName . '.pdf');
 
             // Get base64 content directly from Storage
-            // $base64Content = base64_encode(Storage::disk('invoices')->get($customName . '.pdf'));
+            $base64Content = base64_encode(Storage::disk('invoices')->get($customName . '.pdf'));
 
             // Generate URL (adjust based on your storage configuration)
             $url = Storage::disk('invoices')->url($customName . '.pdf');
@@ -129,7 +129,7 @@ class ReceiptService
             return [
                 'url' => $url,
                 'filename' => $customName . '.pdf',
-                // 'base64' => $base64Content,
+                'base64' => $base64Content,
             ];
 
         } catch (\Throwable $e) {
