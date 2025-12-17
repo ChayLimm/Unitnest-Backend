@@ -214,7 +214,7 @@ class PaymentService{
         }
 
         //generate reciept
-        // $receiptService->generate($payment->id);
+        $receiptService->generate($payment->id);
 
         
         
