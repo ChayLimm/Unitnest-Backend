@@ -159,9 +159,16 @@ class PaymentController extends Controller
         $lastPayment = $request->input('lastPayment');
        
         $consumptionModels = [];
-        foreach ($consumptions as $data) {
-            $consumptionModels[] = new Consumption($data);
+        if(empty($consumptions) || $consumptions == null){
+            //do nth
+            $consumptions = null;
+        }else{
+            foreach ($consumptions as $data) {
+                $consumptionModels[] = new Consumption($data);
+            }
         }
+
+       
         Log::info(("calling payment service"));
         $payment_service = new PaymentService($room_id,);
         // $consumptions = Consumption::all();
