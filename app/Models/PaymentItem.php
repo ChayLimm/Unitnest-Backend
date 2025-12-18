@@ -32,4 +32,9 @@ class PaymentItem extends Model
     {
         return $this->belongsTo(Service::class,'service_id');
     }
+
+    public function consumption()
+    {
+        return $this->belongsTo(Consumption::class, 'consumption_id');
+    }
 }
