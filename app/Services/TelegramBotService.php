@@ -105,6 +105,54 @@ class TelegramBotService
         }
     }
 
+    // send message with photo
+    public function sendPhoto($bot, $chatId, $photoUrl, $caption = null){
+        $token = $bot->token;
+        $url = "https://api.telegram.org/bot{$token}/sendPhoto";
+
+        $payload = [
+            'chat_id' => $chatId,
+            'photo' => $photoUrl,
+            'caption' => $caption ?? '',
+            'parse_mode' => 'HTML',
+        ];
+
+        try {
+            $response = Http::post($url, $payload);
+            $responseData = $response->json();
+            Log::info('Telegram API Response (Photo):', ['response' => $responseData]);
+            Log::info('Photo sent', [
+                'chat_id' => $chatId
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to send photo: " . $e->getMessage());
+        }
+    }
+
+    // send message with doc (file)
+    public function sendDocument($bot, $chatId, $documentUrl, $caption = null){
+        $token = $bot->token;
+        $url = "https://api.telegram.org/bot{$token}/sendDocument";
+
+        $payload = [
+            'chat_id' => $chatId,
+            'document' => $documentUrl,
+            'caption' => $caption ?? '',
+            'parse_mode' => 'HTML',
+        ];
+
+        try {
+            $response = Http::post($url, $payload);
+            $responseData = $response->json();
+            Log::info('Telegram API Response (Document):', ['response' => $responseData]);
+            Log::info('Document sent', [
+                'chat_id' => $chatId
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to send document: " . $e->getMessage());
+        }
+    }
+
     public function answerCallbackQuery($bot, $callbackId)
     {
         $token = $bot->token;
