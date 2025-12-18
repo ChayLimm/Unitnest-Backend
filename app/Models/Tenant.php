@@ -45,4 +45,7 @@ class Tenant extends Model
     {
         return "{$this->first_name} {$this->last_name}";
     }
+    public function contract(){
+        return $this->hasOne(Contract::class,'tenant_id');
+    }
 }

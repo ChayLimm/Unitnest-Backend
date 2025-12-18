@@ -86,7 +86,7 @@ class User extends Authenticatable
 
     public function telegrambots()
     {
-        return $this->hasOne(telegrambot::class);
+        return $this->hasOne(Telegrambot::class,);
     }
 
 }

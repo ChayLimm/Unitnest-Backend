@@ -106,6 +106,10 @@ class PaymentService{
             foreach($consumptions as $consumption){
                 if($consumption->type == "water"){
                     $quantity = $consumption->end_reading - $latest_consumption['water']->end_reading;
+                    if($quantity < 0){
+                        $quantity = 0 ;
+                        $consumption->end_reading = $latest_consumption['water']->end_reading;
+                    }
                     
                 
                     $temp = Consumption::create([
@@ -125,6 +129,10 @@ class PaymentService{
                     ]);
                 } else {
                     $quantity = $consumption->end_reading - $latest_consumption['electricity']->end_reading;
+                    if($quantity < 0){
+                        $quantity = 0 ;
+                        $consumption->end_reading = $latest_consumption['electricity']->end_reading;
+                    }
                     $temp= Consumption::create([
                         'room_id' => $this->room->id,
                         'end_reading'=> $consumption->end_reading,
@@ -179,7 +187,7 @@ class PaymentService{
         }
 
         //generate reciept
-        $receiptService->generate($payment->id);
+        // $receiptService->generate($payment->id);
         $payment->refresh();
         
         

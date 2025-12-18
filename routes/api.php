@@ -120,6 +120,7 @@ Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveCont
 Route::get('rooms/{roomId}/latestConsumption',[RoomController::class,'latestConsumption']);
 Route::get('landlord/{id}/tenants',[TenantController::class,'getByLandlord']);
 Route::get('rooms/{roomid}/consumption/{id}',[ConsumptionService::class,'getConsumptionUsage']);
+Route::post('notification/{id}/approve',[NotificationController::class,'approvePaymentNotification']);
 // Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
 Route::get('services/landlord/{landlordId}',[ServiceController::class,'getServiceByLandlord']);
 Route::prefix('rooms/{roomId}')->group(function () {    
