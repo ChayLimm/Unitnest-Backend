@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Telegrambot;
 use App\Models\User;
 use App\Models\Tenant;
+use App\Models\Contract;
 use App\Services\TelegramBotService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -35,7 +36,21 @@ class SendMonthlyPaymentJob implements ShouldQueue
     {
         //
         $tenant = Tenant::find($this->tenantId);
-        if (! $tenant || ! $tenant->telegram_id) return;
+        if (! $tenant || ! $tenant->telegram_id) {
+            Log::info('Tenant is not found / telegram id is missing', [
+                'tenant_id' => $this->tenantId
+            ]);
+            return;
+        }
+
+        //
+        $activeContract = Contract::where('tenant_id', $tenant->id)->where('status', 'active')->first();
+        if (! $activeContract) {
+            Log::info('active contract is not found for tenant', [
+                'tenant_id' => $this->tenantId
+            ]);
+            return;
+        }
         
         $landlordId = $tenant->landlord_id;
         $chatId = $tenant->telegram_id;
@@ -51,6 +66,7 @@ class SendMonthlyPaymentJob implements ShouldQueue
         $message = "💡 Monthly rent reminder: \n"
         . "━━━━━━━━━━━━━━━━━━━━\n"
         . "Tenant: {$tenant->first_name} {$tenant->last_name}\n"
+        . "Room: " . ($activeContract->room ? $activeContract->room->name : 'N/A') . "\n"
         . "Please  tap the button below to scan meters and submit payment request.";
 
         $telegramBotService->sendMessage($bot, $chatId, $message, $button);

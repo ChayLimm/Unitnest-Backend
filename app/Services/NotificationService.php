@@ -11,6 +11,8 @@ use App\Models\Telegrambot;
 use App\Models\Notification;
 use App\Enums\NotificationType;
 use App\Enums\NotificationStatus;
+use App\Services\TelegramBotService;
+use App\Models\Contract;
 
 // handle notifications such as payment, registration,
 // reminders, store notify and notify tenants.
@@ -145,25 +147,29 @@ class NotificationService {
         $result = $data['result'] ?? [];
         $landlordId = $result['landlord_id'] ?? null;
         $chatId = $result['chat_id'] ?? null; 
-        $meta = $result['data'] ?? null;
+        // $meta = $result['data'] ?? null;
 
         // meta data of meter reponse
-        $waterMeter = $waterAccuracy = $electricityMeter = $electricityAccuracy = null;
-        if (!empty($meta) && is_array($meta)) {
-            foreach ($meta as $meter){
-                if ($meter['type'] === 'water'){
-                    $waterMeter = isset($meter['meter_number']) ? (float)$meter['meter_number'] : null;
-                    $waterAccuracy = isset($meter['accuracy']) ? (float)$meter['accuracy'] : null;
-                }elseif($meter['type'] === 'electricity'){
-                    $electricityMeter = isset($meter['meter_number']) ? (float)$meter['meter_number'] : null;
-                    $electricityAccuracy = isset($meter['accuracy']) ? (float)$meter['accuracy'] : null;
-                }
-            }
-        }
+        $waterMeter = $result['water_meter'] ?? null;
+        $waterAccuracy = $result['water_accuracy'] ?? null;
+        $electricityMeter = $result['electricity_meter'] ?? null;
+        $electricityAccuracy = $result['electricity_accuracy'] ?? null;
+
+        // if (!empty($meta) && is_array($meta)) {
+        //     foreach ($meta as $meter){
+        //         if ($meter['type'] === 'water'){
+        //             $waterMeter = isset($meter['meter_number']) ? (float)$meter['meter_number'] : null;
+        //             $waterAccuracy = isset($meter['accuracy']) ? (float)$meter['accuracy'] : null;
+        //         }elseif($meter['type'] === 'electricity'){
+        //             $electricityMeter = isset($meter['meter_number']) ? (float)$meter['meter_number'] : null;
+        //             $electricityAccuracy = isset($meter['accuracy']) ? (float)$meter['accuracy'] : null;
+        //         }
+        //     }
+        // }
 
         // get url image
-        $image1 = $result['image_1'] ?? null;
-        $image2 = $result['image_2'] ?? null;
+        $waterImage = $result['water_image'] ?? null;
+        $electricityImage = $result['electricity_image'] ?? null;
         
         // prepare payload
         $payload = [
@@ -171,8 +177,8 @@ class NotificationService {
             'water_accuracy' => $waterAccuracy,
             'electricity_meter' => $electricityMeter,
             'electricity_accuracy' => $electricityAccuracy,
-            'image_1' => $image1,
-            'image_2' => $image2,
+            'water_image' => $waterImage,
+            'electricity_image' => $electricityImage,
         ];
 
         $bot = Telegrambot::where('user_id', $landlordId)->first();
@@ -210,15 +216,15 @@ class NotificationService {
             $waterAccuracy = $payload['water_accuracy'] ?? 'N/A';
             $electricityMeter = $payload['electricity_meter'] ?? 'N/A';
             $electricityAccuracy = $payload['electricity_accuracy'] ?? 'N/A';
-            $image1 = $payload['image_1'] ?? null;
-            $image2 = $payload['image_2'] ?? null;
+            $waterImage = $payload['water_image'] ?? null;
+            $electricityImage = $payload['electricity_image'] ?? null;
 
             $message = "✅ We received your payment request info:\n"
                 . "━━━━━━━━━━━━━━━━━━━━\n"
                 . "Water Meter: {$waterMeter} (Accuracy: {$waterAccuracy})\n"
                 . "Electricity Meter: {$electricityMeter} (Accuracy: {$electricityAccuracy})\n"
-                . ($image1 ? "Image 1: {$image1}\n" : "")
-                . ($image2 ? "Image 2: {$image2}\n" : "")
+                . ($waterImage ? "Image Water: {$electricityImage}\n" : "")
+                . ($electricityImage ? "Image Electricity: {$electricityImage}\n" : "")
                 . "━━━━━━━━━━━━━━━━━━━━\n"
                 . "Please wait for your landlord to approve and send you a receipt before making a rent payment.";
         } else {
@@ -264,8 +270,6 @@ class NotificationService {
             'message' => 'Failed to send notification, missinfg bot or chat ID'
         ];
     }
-
-    // handle notify payment approved tenant
 
 
     // hadnle notify registration rejected by landlord
@@ -365,5 +369,123 @@ class NotificationService {
     //     'consumption',
     //     'type'
     // ];
-}
 
+
+    // handle reigstration approval
+    public function approveRegistrationRequest($notificationId, $validatedData){
+
+        // 
+        $notification = Notification::find($notificationId);
+        if (!$notification->read) {
+            $notification->update(['read' => true]);
+        }
+        if(!($notification->notification_type == NotificationType::REGISTRATION)){
+            return response()->json([
+                "message"=>"Must be Registration type",
+            ]);
+        }
+
+        $landlordId = $notification->landlord_id;
+        $chatId = $notification->chat_id;
+        $payload = $notification->payload;
+        if (!$landlordId || !$chatId) {
+            return response()->json([
+                "message" => "Missing landlord ID or chat ID"
+            ], 400);
+        }
+
+        // 
+        if (is_string($payload)) {
+            $payload = json_decode($payload, true);
+        }
+        $firstName = $payload['first_name'] ?? null;
+        $lastName = $payload['last_name'] ?? null;
+        $email = $payload['email'] ?? null;
+        $phone = $payload['phone'] ?? null;
+        $identityImageUrl = $payload['identity_image_url'] ?? null;
+
+        // create tenant
+        $tenant = Tenant::create([
+            'landlord_id' => $landlordId,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'email' => $email,
+            'phone' => $phone,
+            'telegram_id' => $chatId,
+            'identify_image_url' => $identityImageUrl,
+        ]);
+
+        // check tenant exist 
+        if (!$tenant || !$tenant->id) {
+            throw new \Exception('Failed to create tenant');
+        }
+
+        $contract = Contract::create([
+            'tenant_id' => $tenant->id,
+            'room_id' => $validatedData['room_id'],
+            'deposit' => $validatedData['deposit'],
+            'start_date' => $validatedData['start_date'],
+            'status' => 'active',
+        ]);
+        if (!$contract || !$contract->id) {
+            throw new \Exception('Failed to create contract');
+        }
+
+        // then call payemnt service for recepit generation
+        $paymentService = new PaymentService($validatedData['room_id']);
+        $response = $paymentService->processPayment(false, false);
+        $receiptUrl = $response->original['payment']['receipt_url'];
+
+        $notification->update(['status' => NotificationStatus::APPROVED]);
+
+        // notify 
+        $bot = Telegrambot::where('user_id', $landlordId)->first();
+        $this->notifyRegistrationApproval($bot, $chatId, $receiptUrl, $contract->room->room_number, $contract->start_date);
+
+        return [
+            'success' => true,
+            'message' => 'Registration approved and payment receipt sent.',
+            'receipt_url' => $receiptUrl,
+        ];
+        
+    }
+
+    // notify registration approved tenant
+    public function notifyRegistrationApproval($bot, $chatId, $receiptUrl, $roomNumber = null, $start_date = null){
+        $message = "✅ Registration Approved:\n"
+                . "━━━━━━━━━━━━━━━━━━━━\n"
+                . "Your registration has been approved!\n"
+                . "Room: " . ($roomNumber ?? 'N/A') . "\n"
+                . "Contract started on: " . ($start_date ?? 'N/A') . "\n"
+                . "Please make your first rent payment before moving in."
+                . "\nYou can view your payment receipt here: $receiptUrl\n"
+                . "━━━━━━━━━━━━━━━━━━━━\n"
+                . "Thank you and welcome!";
+
+        if ($bot && $chatId) {
+            try {
+                
+                $this->telegramBotService->sendMessage($bot, $chatId, $message);
+                return [
+                    'success' => true,
+                    'message' => 'Notification sent successfully.'
+                ];
+            } catch (\Exception $e) {
+                Log::error('Failed to send approved message: ' . $e->getMessage());
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send notification.'
+                ];
+            }
+        }
+        return [
+            'success' => false,
+            'message' => 'Failed to send notification'
+        ];
+    }
+
+
+
+    // nofiy when user make paymet done -> pyament statue -> completed
+
+}

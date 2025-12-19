@@ -89,7 +89,7 @@ class NotificationController extends Controller
     }
 
     // reject payment notification
-    public function rejectPaymentNotification(Request $request, Notification $notification, NotificationService $notificationService)
+    public function rejectPaymentNotification(Notification $notification, NotificationService $notificationService)
     {   
         // check if read true / marked as read, if not
         if (!$notification->read){
@@ -129,7 +129,7 @@ class NotificationController extends Controller
     }
 
     // reject registration notification
-    public function rejectRegistrationNotification(Request $request, Notification $notification, NotificationService $notificationService)
+    public function rejectRegistrationNotification(Notification $notification, NotificationService $notificationService)
     {   
         //
         if (!$notification->read) {
@@ -157,8 +157,32 @@ class NotificationController extends Controller
     }
 
     // approve registration notification
-    public function approveRegistrationNotification(Request $request, Notification $notification){
-        
+    public function approveRegistrationNotification(Request $request, $notificationId){
+        //
+        $validated = $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'deposit' => 'required|numeric|min:0',
+            'start_date' => 'required|date',
+        ]);
+        //
+        $notification = Notification::find($notificationId);
+        $telegramBotService = new TelegramBotService();
+        $notificationService = new NotificationService($telegramBotService);
+    
+        // call service to handle approval process
+        try {
+            $result = $notificationService->approveRegistrationRequest($notificationId, $validated);
+            return response()->json([
+                'message' => 'Approval notification sent successfully.',
+                'notification' => $notification,
+                'result' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error approving registration notification.', 'error' => $e->getMessage()], 500);
+        }
+
+        // result return to frontend with recepit for show landlord preview
     }
     
 }
+
