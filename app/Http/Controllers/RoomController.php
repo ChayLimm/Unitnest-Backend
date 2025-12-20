@@ -51,6 +51,22 @@ class RoomController extends Controller
 
         $room = Room::create(collect($validated)->except('image')->toArray());
 
+        $consumption = Consumption::create([
+            'room_id' => $room->id,
+            'consumption' => 0,
+            'photo_url' => "Hi",
+            'end_reading' => 0,
+            'type' => 'electricity',
+        ]);
+
+        $consumption = Consumption::create([
+            'room_id' => $room->id,
+            'consumption' => 0,
+            'photo_url' => "Hi",
+            'end_reading' => 0,
+            'type' => 'water',
+        ]);
+
         if ($request->hasFile('image')) {
             $result = $this->storageService->upload($request->file('image'));
             $room->update([
@@ -67,7 +83,7 @@ class RoomController extends Controller
             'building.landlord', 
             'roomType', 
             'contracts.tenant', 
-            'consumptions.service',
+            'consumptions',
             'payments'
         ]);
         return response()->json($room);

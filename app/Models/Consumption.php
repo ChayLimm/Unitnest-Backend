@@ -14,7 +14,6 @@ class Consumption extends Model
 
     protected $fillable = [
         'room_id',
-        'service_id',
         'end_reading',
         'photo_url',
         'consumption',
