@@ -11,6 +11,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use App\Enums\PaymentStatus;
 
 class CheckTransactionStatusJob implements ShouldQueue
 {
@@ -96,7 +97,7 @@ class CheckTransactionStatusJob implements ShouldQueue
 
                     // Update payment
                     $payment->update([
-                        'status' => 'completed',
+                        'status' => PaymentStatus::COMPLETED->value,
                     ]);
                 }
 

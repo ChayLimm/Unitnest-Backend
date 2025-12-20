@@ -103,6 +103,8 @@ class PaymentController extends Controller
         $payments = Payment::where('landlord_id', $landlordId)
             ->with(['room.building', 'paymentItems.service'])
             ->paginate($perPage, ['*'], 'page', $page);
+
+        PaymentService::checkPendingReceipts($landlordId);
         
         return response()->json([
             'data' => $payments->items(),

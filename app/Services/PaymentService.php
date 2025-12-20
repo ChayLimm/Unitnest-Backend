@@ -13,6 +13,7 @@ use App\Services\BakongService;
 use App\Services\ConsumptionService;
 use Illuminate\Database\Eloquent\PendingHasThroughRelationship;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\CheckTransactionStatusJob;
 use Carbon\Carbon;
 
 
@@ -198,6 +199,36 @@ class PaymentService{
             'paymnet_items'=> $payment->paymentItems,
             'total' => $total
         ]);
+    }
+
+    public static function checkPendingReceipts(int $landlordId): array
+    {
+        Log::info("checkPendingReceipts called for landlord: {$landlordId}");
+
+        $paymentStatus = PaymentStatus::PENDING->value;
+
+        $payments = Payment::where('landlord_id', $landlordId)
+            ->where('status', $paymentStatus)
+            ->whereNotNull('md5')
+            ->get();
+
+        if ($payments->isEmpty()) {
+            return [
+                'dispatched' => false,
+                'count' => 0,
+            ];
+        }
+
+        $md5List = $payments->pluck('md5')->toArray();
+
+        // Dispatch your existing job
+        Log::info("Dispatching CheckTransactionStatusJob for " . count($md5List) . " receipts.");
+        CheckTransactionStatusJob::dispatch($md5List, 1);
+
+        return [
+            'dispatched' => true,
+            'count' => count($md5List),
+        ];
     }
     
     // public function processPayment(?Consumption ...$consumptions){

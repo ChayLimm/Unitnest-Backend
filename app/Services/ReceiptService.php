@@ -12,7 +12,6 @@ use App\Services\BakongService;
 use App\Services\ConsumptionService;
 use App\Models\Payment;
 use App\Models\Consumption;
-use App\Jobs\CheckTransactionStatusJob;
 use Illuminate\Support\Facades\Storage;
 
 class ReceiptService
@@ -140,33 +139,6 @@ class ReceiptService
             ]);
             throw $e;
         }
-    }
-
-    public static function checkPendingReceipts(int $landlordId): array
-    {
-        Log::info("checkPendingReceipts called for landlord: {$landlordId}");
-        $payments = Payment::where('landlord_id', $landlordId)
-            ->where('status', 'pending')
-            ->whereNotNull('md5')
-            ->get();
-
-        if ($payments->isEmpty()) {
-            return [
-                'dispatched' => false,
-                'count' => 0,
-            ];
-        }
-
-        $md5List = $payments->pluck('md5')->toArray();
-
-        // Dispatch your existing job
-        Log::info("Dispatching CheckTransactionStatusJob for " . count($md5List) . " receipts.");
-        CheckTransactionStatusJob::dispatch($md5List, 60);
-
-        return [
-            'dispatched' => true,
-            'count' => count($md5List),
-        ];
     }
 
     protected static function e_receipt_format($payment_id){
