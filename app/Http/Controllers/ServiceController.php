@@ -9,7 +9,7 @@ class ServiceController extends Controller
 {
     public function index()
     {
-        $services = Service::with(['consumptions', 'paymentItems'])->get();
+        $services = Service::paginate(15);
         return response()->json($services);
     }
 

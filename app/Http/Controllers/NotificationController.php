@@ -16,7 +16,7 @@ class NotificationController extends Controller
 {
     public function index()
     {
-        $notifications = Notification::with('payment')->get();
+        $notifications = Notification::paginate(15);
         return response()->json($notifications);
     }
 

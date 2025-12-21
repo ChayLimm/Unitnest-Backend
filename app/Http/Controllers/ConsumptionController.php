@@ -9,7 +9,7 @@ class ConsumptionController extends Controller
 {
     public function index()
     {
-        $consumptions = Consumption::with(['room.building', 'service'])->get();
+        $consumptions = Consumption::paginate(15);
         return response()->json($consumptions);
     }
 

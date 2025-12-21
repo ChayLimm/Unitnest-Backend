@@ -9,7 +9,7 @@ class PaymentItemController extends Controller
 {
     public function index()
     {
-        $paymentItems = PaymentItem::with(['payment', 'service'])->get();
+        $paymentItems = PaymentItem::paginate(15);
         return response()->json($paymentItems);
     }
 

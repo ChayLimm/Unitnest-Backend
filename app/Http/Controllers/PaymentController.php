@@ -15,13 +15,7 @@ class PaymentController extends Controller
         $perPage = $request->get('per_page', 15);
         $page = $request->get('page', 1);
 
-        $payments = Payment::with([
-            'tenant', 
-            'landlord', 
-            'transaction', 
-            'room.building',
-            'paymentItems.service',
-        ])->paginate($perPage, ['*'], 'page', $page);
+        $payments = Payment::paginate($perPage, ['*'], 'page', $page);
         
         return response()->json([
             'data' => $payments->items(),

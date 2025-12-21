@@ -17,8 +17,7 @@ class BuildingController extends Controller
         $perPage = $request->get('per_page', 15);
         $page = $request->get('page', 1);
 
-        $buildings = Building::with(['landlord', 'rooms'])
-            ->paginate($perPage, ['*'], 'page', $page);
+        $buildings = Building::paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'data' => $buildings->items(),

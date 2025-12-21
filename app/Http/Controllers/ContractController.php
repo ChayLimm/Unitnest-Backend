@@ -9,7 +9,7 @@ class ContractController extends Controller
 {
     public function index()
     {
-        $contracts = Contract::with(['room.building', 'tenant'])->get();
+        $contracts = Contract::paginate(15);
         return response()->json($contracts);
     }
 

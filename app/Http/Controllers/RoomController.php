@@ -21,8 +21,7 @@ class RoomController extends Controller
         $perPage = $request->get('per_page', 15);
         $page = $request->get('page', 1);
 
-        $rooms = Room::with(['building', 'roomType', 'contracts', 'currentContract.tenant'])
-            ->paginate($perPage, ['*'], 'page', $page);
+        $rooms = Room::paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'data' => $rooms->items(),
