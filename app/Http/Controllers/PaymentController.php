@@ -94,9 +94,7 @@ class PaymentController extends Controller
         $perPage = $request->get('per_page', 15);
         $page = $request->get('page', 1);
 
-        $payments = Payment::where('landlord_id', $landlordId)
-            ->with(['room.building', 'paymentItems.service'])
-            ->paginate($perPage, ['*'], 'page', $page);
+        $payments = Payment::paginate($perPage, ['*'], 'page', $page);
 
         PaymentService::checkPendingReceipts($landlordId);
         
