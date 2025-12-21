@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\Room;
 use App\Models\Service;
 use App\Models\RoomService;
+use App\Models\Consumption;
 use App\Services\ConsumptionService;
 use App\Services\StorageService;
 use Illuminate\Http\Request;
