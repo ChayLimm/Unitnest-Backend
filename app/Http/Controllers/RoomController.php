@@ -13,8 +13,10 @@ use Illuminate\Http\Request;
 
 class RoomController extends Controller
 {
-    public function __construct(private StorageService $storageService) {
-    }
+    public function __construct(
+        private StorageService $storageService
+    ) {}
+
 
     public function index(Request $request)
     {
@@ -51,7 +53,7 @@ class RoomController extends Controller
 
         $room = Room::create(collect($validated)->except('image')->toArray());
 
-        $consumption = Consumption::create([
+        Consumption::create([
             'room_id' => $room->id,
             'consumption' => 0,
             'photo_url' => "Hi",
@@ -59,7 +61,7 @@ class RoomController extends Controller
             'type' => 'electricity',
         ]);
 
-        $consumption = Consumption::create([
+        Consumption::create([
             'room_id' => $room->id,
             'consumption' => 0,
             'photo_url' => "Hi",
@@ -79,13 +81,7 @@ class RoomController extends Controller
 
     public function show(Room $room)
     {
-        $room->load([
-            'building.landlord', 
-            'roomType', 
-            'contracts.tenant', 
-            'consumptions',
-            'payments'
-        ]);
+        $room->load([]);
         return response()->json($room);
     }
 
