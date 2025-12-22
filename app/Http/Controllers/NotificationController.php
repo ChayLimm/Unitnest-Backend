@@ -80,27 +80,32 @@ class NotificationController extends Controller
         //         return $notification;
         //     });
 
-        $notifications = Notification::where('landlord_id', $landlordId)
-            ->with(['tenant.contract.room'])
-            ->get()
-            ->map(function($notification) {
-                // Get room data safely
-                $room = optional(optional(optional($notification->tenant)->contract)->room);
-                
-                // Add the extra fields
-                $notification->room_id = $room->id;
-                $notification->room_number = $room->room_number;
-                $notification->building_id = $room->building_id;
-                
-                // Hide the nested relationships
-                return $notification->makeHidden(['tenant']);
-            });
+    $notifications = Notification::where('landlord_id', $landlordId)
+    ->with(['tenant.contract.room'])
+    ->get()
+    ->map(function($notification) {
+        // Get room data safely
+        $room = optional(optional(optional($notification->tenant)->contract)->room);
+        
+        // Merge the room data into payload
+        $notification->payload = array_merge(
+            (array) $notification->payload, // Cast to array if it's object
+            [
+                'room_id' => $room->id,
+                'room_number' => $room->room_number,
+                'building_id' => $room->building_id
+            ]
+        );
+        
+        // Hide the nested relationships
+        return $notification->makeHidden(['tenant']);
+    });
 
-        return response()->json([
-            'success' => true,
-            'data' => $notifications,
-            'message' => 'Notifications retrieved successfully'
-        ]);
+    return response()->json([
+        'success' => true,
+        'data' => $notifications,
+        'message' => 'Notifications retrieved successfully'
+    ]);
 
         
         // return response()->json($notifications);
