@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\Payment;
 use App\Models\Transaction;
 use App\Enums\PaymentStatus;
-
+use App\Models\TelegramBot;
 class BakongService
 {
     protected string $bakong_account;
@@ -195,6 +195,38 @@ class BakongService
                 $payment->update([
                     'status' => PaymentStatus::COMPLETED->value,
                 ]);
+
+                try{
+                    $tenant = $payment->tenant;
+                    $chatId = $tenant->telegram_id;
+                    if ($tenant && $chatId) {
+
+                        $bot = TelegramBot::where('user_id', $payment->landlord_id)->first();
+                        $telegramService = new TelegramBotService();
+
+                        $roomNumber = $payment->room->room_number ?? 'N/A';
+                        $amount = $trx['amount'] ?? null;
+                        $message = "✅ Payment Received\n"
+                                . "━━━━━━━━━━━━━━━━━━━━\n"
+                                . "Room: {$roomNumber}\n"
+                                . ($amount ? "Amount: {$amount}\n" : "")
+                                . "━━━━━━━━━━━━━━━━━━━━\n"
+                                . "Your payment has been confirmed. Thank you!!";
+
+                        if ($bot) {
+                            $telegramService->sendMessage($bot, $chatId, $message);
+                            Log::info("Sent payment success notification to tenant (chat_id: {$chatId})");
+                        } else {
+                            Log::warning("No Telegram bot found for landlord_id: {$payment->landlord_id}");
+                        }
+                    } else {
+                        Log::warning("Tenant or chat ID not found for payment ID: {$payment->id}");
+
+                    }
+
+                }catch(\Exception $e){
+                    Log::error("Failed to update payment after Bakong transaction success: " . $e->getMessage());
+                }
             }
 
         } catch (\Throwable $e) {
