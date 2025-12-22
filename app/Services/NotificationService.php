@@ -354,7 +354,8 @@ class NotificationService {
         );
         $notification->update([
             "read" => true,
-            "status"=> NotificationStatus::APPROVED
+            "status"=> NotificationStatus::APPROVED,
+            "archived" => true 
         ]);
         
         return $response;
@@ -437,7 +438,11 @@ class NotificationService {
         $response = $paymentService->processPayment(false, false);
         $receiptUrl = $response->original['payment']['receipt_url'];
 
-        $notification->update(['status' => NotificationStatus::APPROVED]);
+        $notification->update([
+            'status' => NotificationStatus::APPROVED,
+            'archived' => true
+            ],
+        );
 
         // notify 
         $bot = Telegrambot::where('user_id', $landlordId)->first();

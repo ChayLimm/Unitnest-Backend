@@ -139,7 +139,10 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Only payment notifications can be rejected.'], 400);
         }
         //
-        $notification->update(['status' => NotificationStatus::REJECTED]);
+        $notification->update([
+            'status' => NotificationStatus::REJECTED,
+            'archived' => true
+        ]);
 
         // notify
         $chatId = $notification->chat_id;
@@ -178,7 +181,10 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Only registration notifications can be rejected.'], 400);
         }
         //
-        $notification->update(['status' => NotificationStatus::REJECTED]);
+        $notification->update([
+            'status' => NotificationStatus::REJECTED,
+            'archived' => true
+        ]);
 
         // notify
         $chatId = $notification->chat_id;

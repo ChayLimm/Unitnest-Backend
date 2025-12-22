@@ -23,10 +23,12 @@ class Notification extends Model
         'status',
         'landlord_id',
         'chat_id',
+        'archived'
     ];
 
     protected $casts = [
         'read' => 'boolean',
+        'archived' => 'boolean',
         'notification_type' => NotificationType::class,
         'status' => NotificationStatus::class,
         'payload' => 'array',
