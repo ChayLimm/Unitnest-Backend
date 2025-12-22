@@ -23,12 +23,10 @@ class Notification extends Model
         'status',
         'landlord_id',
         'chat_id',
-        'archived'
     ];
 
     protected $casts = [
         'read' => 'boolean',
-        'archived' => 'boolean',
         'notification_type' => NotificationType::class,
         'status' => NotificationStatus::class,
         'payload' => 'array',
@@ -48,43 +46,26 @@ class Notification extends Model
     {
         return $this->belongsTo(Tenant::class, 'chat_id', 'telegram_id');
     }
+//      public function getNotificationTypeAttribute($value)
+// {
+//     $enum = $this->castAttribute('notification_type', $value);
+//     return $enum instanceof NotificationType ? $enum->value : $value;
+// }
 
-    // Room ID accessor
-    public function getRoomIdAttribute()
-    {
-        return optional(optional(optional($this->tenant)->contract)->room)->id;
-    }
+// public function getStatusAttribute($value)
+// {
+//     $enum = $this->castAttribute('status', $value);
+//     return $enum instanceof NotificationStatus ? $enum->value : $value;
+// }
 
-    // Room number accessor  
-    public function getRoomNumberAttribute()
-    {
-        return optional(optional(optional($this->tenant)->contract)->room)->room_number;
-    }
+// // OR simpler accessor that always returns string
+// public function getNotificationTypeDisplayAttribute()
+// {
+//     return $this->getRawOriginal('notification_type');
+// }
 
-    public function getBuildingIdAttribute()
-    {
-        return optional(optional(optional($this->tenant)->contract)->room)->building_id;
-    }
-    public function getNotificationTypeAttribute($value)
-    {
-        $enum = $this->castAttribute('notification_type', $value);
-        return $enum instanceof NotificationType ? $enum->value : $value;
-    }
-
-    public function getStatusAttribute($value)
-    {
-        $enum = $this->castAttribute('status', $value);
-        return $enum instanceof NotificationStatus ? $enum->value : $value;
-    }
-
-    // OR simpler accessor that always returns string
-    public function getNotificationTypeDisplayAttribute()
-    {
-        return $this->getRawOriginal('notification_type');
-    }
-
-    public function getStatusDisplayAttribute()
-    {
-        return $this->getRawOriginal('status');
-    }
+// public function getStatusDisplayAttribute()
+// {
+//     return $this->getRawOriginal('status');
+// }
 }
