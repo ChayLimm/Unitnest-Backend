@@ -304,7 +304,7 @@ class NotificationService {
 
 
     // handle notify reigstration approved by landlord
-    public function approvalePaymentRequest($notificationId){
+    public function approvePaymentRequest($notificationId){
         //validate
         $notification = Notification::find($notificationId);
         if(!($notification->notification_type == NotificationType::PAYMENT)){
@@ -313,7 +313,7 @@ class NotificationService {
             ]);
         }
      
-        $paylaod = $notification->payload['result'];
+        $payload = $notification->payload['result'];
         //find room id
         $tenant = Tenant::where('telegram_id', $notification->chat_id)->first();
 
@@ -329,14 +329,14 @@ class NotificationService {
 
         $water_consumption = new Consumption([
             "room_id" => $roomId,
-            'end_reading' => $paylaod['water_meter'],
-            'photo_url'=> $paylaod['water_image'],
+            'end_reading' => $payload['water_meter'],
+            'photo_url'=> $payload['water_image'],
             'type' => "water"
         ]) ;
         $electricity_consumption = new Consumption([
             "room_id" => $roomId,
-            'end_reading' => $paylaod['electricity_meter'],
-            'photo_url'=> $paylaod['electricity_image'],
+            'end_reading' => $payload['electricity_meter'],
+            'photo_url'=> $payload['electricity_image'],
             'type' => "electricity"
         ]);
         $data = [$water_consumption,$electricity_consumption];
@@ -349,7 +349,7 @@ class NotificationService {
         $bot = $user->telegrambots;
         $telegramSerivce->sendMessage(
             $bot,
-            $paylaod['chat_id'],
+            $payload['chat_id'],
             "Your Payment have been APPROVED, please proceed the payment via receipt download bellow : $receiptUrl"
         );
         $notification->update([

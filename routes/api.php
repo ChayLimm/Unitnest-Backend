@@ -115,12 +115,12 @@ Route::get('payments/tenant/{tenantId}', [PaymentController::class, 'getTenantPa
 Route::patch('payments/{payment}/status', [PaymentController::class, 'updateStatus']);
 Route::get('payment-items/payment/{paymentId}', [PaymentItemController::class, 'getPaymentItems']);
 Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
-Route::post('proccess-Payment',[PaymentController::class,'processPayment']);
+Route::post('proccess-payment',[PaymentController::class,'processPayment']);
 Route::get('rooms/{roomId}/activeContract',[RoomController::class,'getActiveContract']);
 Route::get('rooms/{roomId}/latestConsumption',[RoomController::class,'latestConsumption']);
 Route::get('landlord/{id}/tenants',[TenantController::class,'getByLandlord']);
 Route::get('rooms/{roomid}/consumption/{id}',[ConsumptionService::class,'getConsumptionUsage']);
-Route::post('notification/{id}/approve',[NotificationController::class,'approvePaymentNotification']);
+Route::post('notification/{id}/approve-payment',[NotificationController::class,'approvePaymentNotification']);
 // Route::get('rooms/{roomId}/services',[RoomController::class,'roomsService']);
 Route::get('services/landlord/{landlordId}',[ServiceController::class,'getServiceByLandlord']);
 Route::prefix('rooms/{roomId}')->group(function () {    

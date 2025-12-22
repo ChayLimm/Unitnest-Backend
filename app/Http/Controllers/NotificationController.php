@@ -121,7 +121,7 @@ class NotificationController extends Controller
     public function approvePaymentNotification($notificationId){
         $telegramBot = new TelegramBotService();
         $notificationService = new NotificationService($telegramBot);
-        $res = $notificationService->approvalePaymentRequest($notificationId);
+        $res = $notificationService->approvePaymentRequest($notificationId);
 
         return response()->json([
             'message' => 'Approval notification sent successfully.',
