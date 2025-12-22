@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Models\Payment;
 use App\Models\Transaction;
-use App\Jobs\CheckTransactionStatusJob;
+use App\Enums\PaymentStatus;
 
 class BakongService
 {
@@ -139,6 +139,66 @@ class BakongService
                 'message' => $e->getMessage()
             ];
         }
+    }
 
+    public function checkAndUpdate(array $md5List): void
+    {
+        $bakongApiKey = config('bakong.api_key');
+        $url = config('bakong.api_url', 'https://api-bakong.nbc.gov.kh')
+            . '/v1/check_transaction_by_md5_list';
+
+        try {
+            $response = Http::withoutVerifying()
+                ->withHeaders([
+                    'Content-Type'  => 'application/json',
+                    'Authorization' => 'Bearer ' . $bakongApiKey,
+                ])
+                ->post($url, [
+                    'md5' => $md5List,
+                ]);
+
+            $data = $response->json();
+
+            Log::debug("Bakong response ({$response->status()}): " . json_encode($data));
+
+            // API-level failure
+            if (($data['responseCode'] ?? null) !== 0) {
+                Log::warning('Bakong API returned non-zero responseCode', $data);
+                return;
+            }
+
+            foreach (($data['data'] ?? []) as $trx) {
+
+                if (($trx['status'] ?? null) !== 'SUCCESS') {
+                    continue;
+                }
+
+                $md5 = $trx['md5'] ?? null;
+                if (!$md5) {
+                    continue;
+                }
+
+                $payment = Payment::where('md5', $md5)->first();
+                if (!$payment) {
+                    continue;
+                }
+
+                Log::info("✅ Bakong transaction {$md5} success");
+
+                // Update transaction payload
+                if ($payment->transaction_id) {
+                    Transaction::where('id', $payment->transaction_id)
+                        ->update(['payload' => $trx]);
+                }
+
+                // Update payment status
+                $payment->update([
+                    'status' => PaymentStatus::COMPLETED->value,
+                ]);
+            }
+
+        } catch (\Throwable $e) {
+            Log::error('Bakong check transaction error: ' . $e->getMessage());
+        }
     }
 }

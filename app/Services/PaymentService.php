@@ -13,7 +13,6 @@ use App\Services\BakongService;
 use App\Services\ConsumptionService;
 use Illuminate\Database\Eloquent\PendingHasThroughRelationship;
 use Illuminate\Support\Facades\Log;
-use App\Jobs\CheckTransactionStatusJob;
 use Carbon\Carbon;
 
 
@@ -204,6 +203,7 @@ class PaymentService{
     public static function checkPendingReceipts(int $landlordId): array
     {
         Log::info("checkPendingReceipts called for landlord: {$landlordId}");
+        $bakongService = app(BakongService::class);
 
         $paymentStatus = PaymentStatus::PENDING->value;
 
@@ -222,11 +222,11 @@ class PaymentService{
         $md5List = $payments->pluck('md5')->toArray();
 
         // Dispatch your existing job
-        Log::info("Dispatching CheckTransactionStatusJob for " . count($md5List) . " receipts.");
-        CheckTransactionStatusJob::dispatch($md5List, 1);
+        Log::info("Checking Bakong MD5 for " . count($md5List) . " receipts.");
+        $bakongService->checkAndUpdate($md5List);
 
         return [
-            'dispatched' => true,
+            'message' => "Check Transaction Status.",
             'count' => count($md5List),
         ];
     }
