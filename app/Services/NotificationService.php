@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\PaymentStatus;
 use App\Models\Consumption;
 use App\Models\Tenant;
 use App\Models\User;
@@ -312,9 +313,15 @@ class NotificationService {
                 "message"=>"Must be Payment type",
             ]);
         }
+
+        if($notification->status == NotificationStatus::APPROVED){
+            return response()->json([
+                "message"=>"Notification is already Approved or reject"
+            ]);
+        }
      
-        $payload = $notification->payload['result'];
-        //find room id
+        $payload = $notification->payload;//->payload['result'];]
+   
         $tenant = Tenant::where('telegram_id', $notification->chat_id)->first();
 
         if ($tenant && $tenant->contract) {
@@ -323,6 +330,7 @@ class NotificationService {
             $roomId = null; // or throw exception, etc.
             return response()->json([
                 "message"=>"room is not found in approving payment request"
+                
             ]);
         }
         $paymentService = new PaymentService( $roomId);
@@ -339,6 +347,8 @@ class NotificationService {
             'photo_url'=> $payload['electricity_image'],
             'type' => "electricity"
         ]);
+        
+      
         $data = [$water_consumption,$electricity_consumption];
         $response =  $paymentService->processPayment(false,false,   ...$data );
         // $rceiptUrl = $paymentData['payment']['receipt_url'];
