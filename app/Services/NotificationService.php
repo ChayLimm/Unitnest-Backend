@@ -13,6 +13,7 @@ use App\Enums\NotificationType;
 use App\Enums\NotificationStatus;
 use App\Services\TelegramBotService;
 use App\Models\Contract;
+use App\Models\Payment;
 
 // handle notifications such as payment, registration,
 // reminders, store notify and notify tenants.
@@ -487,5 +488,108 @@ class NotificationService {
 
 
     // nofiy when user make paymet done -> pyament statue -> completed
+    public function sendPaymentReminder($landlordId){
+        //
+        $bot = Telegrambot::where('user_id', $landlordId)->first();
+        if (!$bot) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Telegram bot is not found ' . $landlordId,
+            ]);
+        }
+
+        // get unpaid payments where have active contract
+        $unpaidPayments = Payment::where('landlord_id', $landlordId)
+                        ->where('status', 'unpaid')
+                        ->whereHas('room.currentContract')
+                        ->with(['room', 'tenant'])
+                        ->get();
+
+        if ($unpaidPayments->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No unpaid payments for the landlord!',
+            ]);
+        }
+
+        // send reminder for each unpaid payment
+        foreach ($unpaidPayments as $payment) {
+
+            if (!$payment->tenant || !$payment->tenant->telegram_id) {
+                Log::info('Tenant not found for this payment!' . $payment->id);
+                continue;
+            }
+
+            $res = $this->notifyPaymentReminder($bot, $payment->tenant->telegram_id, $payment->room->room_number);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment reminder sent successfully.',
+            'res' => $res
+        ]);
+
+    }
+
+
+        // //
+        // $payment = Payment::where('landlord_id', $landlordId)
+        //             ->where('status', 'unpaid')
+        //             ->latest()
+        //             ->first();
+        
+        // if (!$payment || !$payment->id) {  
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'This room has no unpaid payment!',
+        //     ]);  
+        // }
+        // $tenant = Tenant::where('id', $payment->tenant_id)->first();
+        // if (!$tenant || !$tenant->telegram_id) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Tenant not found!',
+        //     ]);
+        // }
+
+        // $landlordId = $tenant->landlord_id;
+        // $chatId = $tenant->telegram_id;
+        // if (!$landlordId || !$chatId) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Landlord ID / Chat ID not found!',
+        //     ]);
+        // }
+        // $res = $this->notifyPaymentReminder($bot, $chatId, $payment->room->room_number);
+
+    // send payment reminder to tenant
+    public function notifyPaymentReminder($bot, $chatId, $roomNumber = null, $dueDate = null){
+        $message = "🔔 Payment Reminder:\n"
+                 . "━━━━━━━━━━━━━━━━━━━━\n"
+                 . "This is a friendly reminder that your rent payment is due soon.\n"
+                 . "Room: " . ($roomNumber ?? 'N/A') . "\n"
+                 . "━━━━━━━━━━━━━━━━━━━━\n"
+                 . "Please ensure your payment is made on time to avoid any late fees.";
+
+        if ($bot && $chatId) {
+            try {
+                $this->telegramBotService->sendMessage($bot, $chatId, $message);
+                return [
+                    'success' => true,
+                    'message' => 'Payment reminder sent successfully.'
+                ];
+            } catch (\Exception $e) {
+                Log::error('Failed to send payment reminder: ' . $e->getMessage());
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send payment reminder.'
+                ];
+            }
+        }
+        return [
+            'success' => false,
+            'message' => 'Failed to send payment reminder, missing bot or chat ID.'
+        ];
+    }
 
 }
