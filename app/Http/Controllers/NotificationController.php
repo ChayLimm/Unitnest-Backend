@@ -68,10 +68,42 @@ class NotificationController extends Controller
     public function getNotificationsByLandlord(Request $request, $landlordId)
     {
 
+        // $notifications = Notification::where('landlord_id', $landlordId)
+        //     ->get();
+
+        // $notifications = Notification::where('landlord_id', $landlordId)
+        //     ->with(['tenant.contract.room']) // Now Notification has tenant relationship
+        //     ->get()
+        //     ->map(function($notification) {
+        //         $notification->room_id = $notification->tenant?->contract?->room?->id;
+        //         $notification->room_number = $notification->tenant?->contract?->room?->room_number;
+        //         return $notification;
+        //     });
+
         $notifications = Notification::where('landlord_id', $landlordId)
-            ->get();
+            ->with(['tenant.contract.room'])
+            ->get()
+            ->map(function($notification) {
+                // Get room data safely
+                $room = optional(optional(optional($notification->tenant)->contract)->room);
+                
+                // Add the extra fields
+                $notification->room_id = $room->id;
+                $notification->room_number = $room->room_number;
+                $notification->building_id = $room->building_id;
+                
+                // Hide the nested relationships
+                return $notification->makeHidden(['tenant']);
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $notifications,
+            'message' => 'Notifications retrieved successfully'
+        ]);
+
         
-        return response()->json($notifications);
+        // return response()->json($notifications);
     }
 
     public function markAsRead(Notification $notification)
