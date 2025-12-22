@@ -314,7 +314,7 @@ class NotificationService {
             ]);
         }
 
-        if($notification->status == NotificationStatus::APPROVED){
+        if($notification->status != NotificationStatus::PENDING ){
             return response()->json([
                 "message"=>"Notification is already Approved or reject"
             ]);
@@ -371,6 +371,38 @@ class NotificationService {
         return $response;
 
     }
+
+     public function rejectPaymentRequest($notificationId){
+        $notification = Notification::find($notificationId);
+        if(!($notification->notification_type == NotificationType::PAYMENT)){
+            return response()->json([
+                "message"=>"Must be Payment type",
+            ]);
+        }
+
+        if($notification->status != NotificationStatus::PENDING ){
+            return response()->json([
+                "message"=>"Notification is already Approved or reject"
+            ]);
+        }
+        $payload = $notification->payload;
+        $notification->update([
+            "read" => true,
+            "status"=> NotificationStatus::REJECTED,
+            "archived" => true 
+        ]);
+
+
+        $telegramSerivce = new TelegramBotService();
+        $user = User::find($notification->landlord_id);
+        $bot = $user->telegrambots;
+        $telegramSerivce->sendMessage(
+            $bot,
+            $payload['chat_id'],
+            "Your Payment have been APPROVED, please proceed the payment via receipt down bellow : $receiptUrl"
+        );
+     }
+
 
 
     // protected $fillable = [
