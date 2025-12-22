@@ -11,6 +11,7 @@ use App\Models\Telegrambot;
 use App\Enums\NotificationStatus;
 use App\Enums\NotificationType;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\Log;
 
 class NotificationController extends Controller
 {
@@ -182,6 +183,24 @@ class NotificationController extends Controller
         }
 
         // result return to frontend with recepit for show landlord preview
+    }
+
+    // handle send notification to tenant for payment reminder
+    public function handlePaymentReminder($landlordId)
+    {
+        $telegramBot = new TelegramBotService();
+        $notificationService = new NotificationService($telegramBot);
+
+        try{
+            $result = $notificationService->sendPaymentReminder($landlordId);
+            return $result;
+        }catch (\Exception $e){
+            Log::error('Error in handlePaymentReminder: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send payment reminder: ' . $e->getMessage()
+            ], 500);
+        }
     }
     
 }

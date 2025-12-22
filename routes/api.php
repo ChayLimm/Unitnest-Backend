@@ -158,3 +158,5 @@ Route::patch('notifications/{notification}/reject-payment', [NotificationControl
 Route::patch('notifications/{notification}/approve-registration', [NotificationController::class, 'approveRegistrationNotification']);
 Route::patch('notifications/{notification}/reject-registration', [NotificationController::class, 'rejectRegistrationNotification']);
 Route::get('notifications/landlord/{landlord_id}', [NotificationController::class, 'getNotificationsByLandlord']);
+Route::post('notifications/landlord/{landlord_id}/payment-reminders', [NotificationController::class, 'handlePaymentReminder']);
+// Route::post('notifications/landlord/reminder/{room_id}', [NotificationController::class, 'handlePaymentReminder']);
