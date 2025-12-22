@@ -75,25 +75,25 @@ class Notification extends Model
         return $this->getRawOriginal('status');
     }
 
-    // In app/Models/Notification.php
-    public function toArray()
-    {
-        $array = parent::toArray();
+    // // In app/Models/Notification.php
+    // public function toArray()
+    // {
+    //     $array = parent::toArray();
 
-        // Convert enum objects to strings
-        if (isset($array['notification_type']) && is_object($array['notification_type'])) {
-            $array['notification_type'] = $array['notification_type']->value ?? (string) $array['notification_type'];
-        }
+    //     // Convert enum objects to strings
+    //     if (isset($array['notification_type']) && is_object($array['notification_type'])) {
+    //         $array['notification_type'] = $array['notification_type']->value ?? (string) $array['notification_type'];
+    //     }
 
-        if (isset($array['status']) && is_object($array['status'])) {
-            $array['status'] = $array['status']->value ?? (string) $array['status'];
-        }
+    //     if (isset($array['status']) && is_object($array['status'])) {
+    //         $array['status'] = $array['status']->value ?? (string) $array['status'];
+    //     }
 
-        // Add your appended attributes
-        $array['room_id'] = $this->room_id;
-        $array['room_number'] = $this->room_number;
-        $array['building_id'] = $this->building_id;
+    //     // Add your appended attributes
+    //     $array['room_id'] = $this->room_id;
+    //     $array['room_number'] = $this->room_number;
+    //     $array['building_id'] = $this->building_id;
 
-        return $array;
-    }
+    //     return $array;
+    // }
 }
