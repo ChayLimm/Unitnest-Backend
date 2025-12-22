@@ -37,10 +37,32 @@ class CheckIfAdmin
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
+    // private function respondToUnauthorizedRequest($request)
+    // {
+    //     if ($request->ajax() || $request->wantsJson()) {
+    //         return response(trans('backpack::base.unauthorized'), 401);
+    //     } else {
+    //         return redirect()->guest(backpack_url('login'));
+    //     }
+    // }
+
     private function respondToUnauthorizedRequest($request)
     {
+        try {
+            $message = trans('backpack::base.unauthorized');
+            
+            // Ensure it's always a string
+            if (is_array($message)) {
+                $message = 'Unauthorized access.';
+            } elseif (!is_string($message)) {
+                $message = 'Unauthorized access.';
+            }
+        } catch (\Exception $e) {
+            $message = 'Unauthorized access.';
+        }
+        
         if ($request->ajax() || $request->wantsJson()) {
-            return response(trans('backpack::base.unauthorized'), 401);
+            return response($message, 401);
         } else {
             return redirect()->guest(backpack_url('login'));
         }
