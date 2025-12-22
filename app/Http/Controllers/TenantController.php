@@ -170,28 +170,7 @@ class TenantController extends Controller
      */
     public function getByLandlord($landlordId, Request $request): JsonResponse
     {
-        // Optional: Add authorization if needed
-        // $currentUserId = Auth::id();
-        // if ($currentUserId != $landlordId) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Unauthorized access'
-        //     ], 403);
-        // }
-        
-        $query = Tenant::where('landlord_id', $landlordId);
-        
-        // Optional search
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-        
-        $tenants = $query->get();
+        $tenants = Tenant::where('landlord_id', $landlordId)->get();
         
         return response()->json([
             'success' => true,
