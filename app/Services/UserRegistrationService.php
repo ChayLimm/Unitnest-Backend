@@ -43,6 +43,8 @@ class UserRegistrationService{
 
             $setting = Setting::create([
                 'user_id' => $user->id,
+                'water_price' => $data['water_price'],
+                'electricity_price' => $data['electricity_price'],
                 'general_rules' => $data['general_rules'] ?? 'These are the general rules.',
                 'contract_rules' => $data['contract_rules'] ?? 'These are the contract rules.',
                 'khr_currency' => $data['khr_currency'] ?? 4000,

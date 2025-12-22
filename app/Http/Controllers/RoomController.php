@@ -53,6 +53,13 @@ class RoomController extends Controller
 
         $room = Room::create(collect($validated)->except('image')->toArray());
 
+        if ($request->hasFile('image')) {
+            $result = $this->storageService->upload($request->file('image'));
+            $room->update([
+                'image_url' => $result['url'],
+            ]);
+        }
+
         Consumption::create([
             'room_id' => $room->id,
             'consumption' => 0,
@@ -68,13 +75,6 @@ class RoomController extends Controller
             'end_reading' => 0,
             'type' => 'water',
         ]);
-
-        if ($request->hasFile('image')) {
-            $result = $this->storageService->upload($request->file('image'));
-            $room->update([
-                'image_url' => $result['url'],
-            ]);
-        }
 
         return response()->json($room, 201);
     }
