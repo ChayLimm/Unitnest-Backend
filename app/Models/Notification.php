@@ -46,26 +46,26 @@ class Notification extends Model
     {
         return $this->belongsTo(Tenant::class, 'chat_id', 'telegram_id');
     }
-//      public function getNotificationTypeAttribute($value)
-// {
-//     $enum = $this->castAttribute('notification_type', $value);
-//     return $enum instanceof NotificationType ? $enum->value : $value;
-// }
+     public function getNotificationTypeAttribute($value)
+{
+    $enum = $this->castAttribute('notification_type', $value);
+    return $enum instanceof NotificationType ? $enum->value : $value;
+}
 
-// public function getStatusAttribute($value)
-// {
-//     $enum = $this->castAttribute('status', $value);
-//     return $enum instanceof NotificationStatus ? $enum->value : $value;
-// }
+public function getStatusAttribute($value)
+{
+    $enum = $this->castAttribute('status', $value);
+    return $enum instanceof NotificationStatus ? $enum->value : $value;
+}
 
-// // OR simpler accessor that always returns string
-// public function getNotificationTypeDisplayAttribute()
-// {
-//     return $this->getRawOriginal('notification_type');
-// }
+// OR simpler accessor that always returns string
+public function getNotificationTypeDisplayAttribute()
+{
+    return $this->getRawOriginal('notification_type');
+}
 
-// public function getStatusDisplayAttribute()
-// {
-//     return $this->getRawOriginal('status');
-// }
+public function getStatusDisplayAttribute()
+{
+    return $this->getRawOriginal('status');
+}
 }
