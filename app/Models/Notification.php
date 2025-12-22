@@ -27,8 +27,8 @@ class Notification extends Model
 
     protected $casts = [
         'read' => 'boolean',
-        'notification_type' => NotificationType::class,
-        'status' => NotificationStatus::class,
+        'notification_type' => 'string',
+        'status' => 'string',
         'payload' => 'array',
     ];
 
