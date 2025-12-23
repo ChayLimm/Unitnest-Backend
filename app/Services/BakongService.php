@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\Payment;
 use App\Models\Transaction;
 use App\Enums\PaymentStatus;
-use App\Models\TelegramBot;
+use App\Models\Telegrambot;
 class BakongService
 {
     protected string $bakong_account;
@@ -193,6 +193,9 @@ class BakongService
             // Update payment status
             $payment->update([
                 'status' => 'completed',
+            ]);
+            $payment->room->update([
+                'status' => "paid"
             ]);
 
                 try{
