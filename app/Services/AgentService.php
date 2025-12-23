@@ -243,19 +243,19 @@ class AgentService
         // Check if user already registered
         $notification = Notification::Where('chat_id', $chatId)
             ->where('landlord_id', $landlordId)
-            ->where('notification_type', NotificationType::REGISTRATION)
+            ->where('notification_type', NotificationType::REGISTRATION->value)
             ->orderByDesc('created_at')
             ->first();
         
         if ($notification) {
             switch ($notification->status){
-                case NotificationStatus::PENDING:
+                case NotificationStatus::PENDING->value:
                     return "🕒 Registration is Processing...\n".$seperator."Your registration is pending for landlord approval, Please wait for confirmation.";
                 
-                case NotificationStatus::APPROVED:
+                case NotificationStatus::APPROVED->value:
                     return "✅ You are already registered!\n".$seperator."If you need to update your info, please contact your landlord.";
                 
-                case NotificationStatus::REJECTED:
+                case NotificationStatus::REJECTED->value:
                     // allow to re-register
                     return "❌ Your previous registration was rejected.\n\n" .
                         $header . $seperator . $mention . "\n" . $seperator . $footer;
