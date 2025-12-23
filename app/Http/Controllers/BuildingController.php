@@ -96,7 +96,6 @@ class BuildingController extends Controller
         $page = $request->get('page', 1);
 
         $buildings = Building::where('landlord_id', $landlordId)
-            ->with(['rooms.roomType', 'rooms.currentContract.tenant'])
             ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([

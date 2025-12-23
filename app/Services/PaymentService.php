@@ -203,8 +203,8 @@ class PaymentService{
     public static function checkPendingReceipts(int $landlordId): array
     {
         Log::info("checkPendingReceipts called for landlord: {$landlordId}");
-        $bakongService = app(BakongService::class);
 
+        $bakongService = app(BakongService::class);
         $paymentStatus = PaymentStatus::PENDING->value;
 
         $payments = Payment::where('landlord_id', $landlordId)
@@ -214,20 +214,31 @@ class PaymentService{
 
         if ($payments->isEmpty()) {
             return [
-                'dispatched' => false,
-                'count' => 0,
+                'message' => 'No pending transactions found',
+                'count'   => 0,
             ];
         }
 
-        $md5List = $payments->pluck('md5')->toArray();
+        $processed = 0;
 
-        // Dispatch your existing job
-        Log::info("Checking Bakong MD5 for " . count($md5List) . " receipts.");
-        $bakongService->checkAndUpdate($md5List);
+        foreach ($payments as $payment) {
+            try {
+                Log::info("🔍 Checking Bakong transaction md5={$payment->md5}");
+
+                $bakongService->checkAndUpdate($payment->md5);
+                $processed++;
+
+            } catch (\Throwable $e) {
+                // Never fail the whole batch
+                Log::error(
+                    "Bakong check failed for md5={$payment->md5}: {$e->getMessage()}"
+                );
+            }
+        }
 
         return [
-            'message' => "Check Transaction Status.",
-            'count' => count($md5List),
+            'message' => 'Check Transaction Status Successfully',
+            'count'   => $processed,
         ];
     }
     

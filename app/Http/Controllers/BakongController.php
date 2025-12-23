@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\CheckTransactionStatusJob;
 use Illuminate\Http\Request;
 use App\Services\BakongService;
 
@@ -52,16 +51,14 @@ class BakongController extends Controller
     public function checkTransactionStatus(Request $request)
     {
         $request->validate([
-            'md5' => 'required|string',
-            'timeout' => 'sometimes|integer|min:1|max:60'
+            'md5' => 'required|string|max:255',
         ]);
 
         $md5 = $request->input('md5');
-        $timeout = $request->input('timeout', 30); // Default to 30 seconds if not provided
+        $bakongService = new BakongService();
 
-        $transaction = new CheckTransactionStatusJob($md5, $timeout);
-        $status = $transaction->handle();
+        $transaction = $bakongService->checkAndUpdate($md5);
 
-        return response()->json($status);
+        return response()->json($transaction);
     }
 }

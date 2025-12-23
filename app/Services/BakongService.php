@@ -141,11 +141,11 @@ class BakongService
         }
     }
 
-    public function checkAndUpdate(array $md5List): void
+    public function checkAndUpdate(string $md5): void
     {
         $bakongApiKey = config('bakong.api_key');
         $url = config('bakong.api_url', 'https://api-bakong.nbc.gov.kh')
-            . '/v1/check_transaction_by_md5_list';
+            . '/v1/check_transaction_by_md5';
 
         try {
             $response = Http::withoutVerifying()
@@ -154,48 +154,46 @@ class BakongService
                     'Authorization' => 'Bearer ' . $bakongApiKey,
                 ])
                 ->post($url, [
-                    'md5' => $md5List,
+                    'md5' => $md5,
                 ]);
 
-            $data = $response->json();
+            $result = $response->json();
 
-            Log::debug("Bakong response ({$response->status()}): " . json_encode($data));
+            Log::debug("Bakong single MD5 response ({$response->status()}): " . json_encode($result));
 
             // API-level failure
-            if (($data['responseCode'] ?? null) !== 0) {
-                Log::warning('Bakong API returned non-zero responseCode', $data);
+            if (($result['responseCode'] ?? null) !== 0) {
+                Log::warning('Bakong API returned non-zero responseCode', $result);
                 return;
             }
 
-            foreach (($data['data'] ?? []) as $trx) {
-
-                if (($trx['status'] ?? null) !== 'SUCCESS') {
-                    continue;
-                }
-
-                $md5 = $trx['md5'] ?? null;
-                if (!$md5) {
-                    continue;
-                }
-
-                $payment = Payment::where('md5', $md5)->first();
-                if (!$payment) {
-                    continue;
-                }
-
-                Log::info("✅ Bakong transaction {$md5} success");
-
-                // Update transaction payload
-                if ($payment->transaction_id) {
-                    Transaction::where('id', $payment->transaction_id)
-                        ->update(['payload' => $trx]);
-                }
-
-                // Update payment status
-                $payment->update([
-                    'status' => PaymentStatus::COMPLETED->value,
-                ]);
+            $trxData = $result['data'] ?? null;
+            if (!$trxData) {
+                Log::warning("Bakong transaction not found for md5: {$md5}");
+                return;
             }
+
+            $payment = Payment::where('md5', $md5)->first();
+            if (!$payment) {
+                Log::warning("Payment not found for md5: {$md5}");
+                return;
+            }
+
+            Log::info("✅ Bakong transaction {$md5} success");
+
+            // Normalize payload
+            $payload = $result['data'];
+
+            // Update transaction
+            if ($payment->transaction_id) {
+                Transaction::where('id', $payment->transaction_id)
+                    ->update(['payload' => $payload]);
+            }
+
+            // Update payment status
+            $payment->update([
+                'status' => 'completed',
+            ]);
 
         } catch (\Throwable $e) {
             Log::error('Bakong check transaction error: ' . $e->getMessage());
