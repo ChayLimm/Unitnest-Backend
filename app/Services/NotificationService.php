@@ -565,24 +565,25 @@ class NotificationService {
         }
 
         // get unpaid payments where have active contract
-        $unpaidPayments = Payment::where('landlord_id', $landlordId)
-                        ->where('status', 'unpaid')
-                        // ->where('status', 'pending')
-                        ->whereHas('room.currentContract')
-                        ->with(['room', 'tenant'])
-                        ->get();
+        // $unpaidPayments = Payment::where('landlord_id', $landlordId)
+        //                 ->where('status', 'unpaid')
+        //                 // ->where('status', 'pending')
+        //                 ->whereHas('room.currentContract')
+        //                 ->with(['room', 'tenant'])
+        //                 ->get();
 
-        if ($unpaidPayments->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No unpaid payments for the landlord!',
-            ]);
-        }
+        // if ($unpaidPayments->isEmpty()) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'No unpaid payments for the landlord!',
+        //     ]);
+        // }
+        $tenants = Tenant::all();
 
         // send reminder for each unpaid payment
-        foreach ($unpaidPayments as $payment) {
+        foreach ($tenants as $tenant) {
 
-            $tenant = $payment->tenant;
+            // $tenant = $payment->tenant;
             $chatId = $tenant->telegram_id;
             if (!$tenant || !$tenant->telegram_id) {
                 Log::info('Tenant not found for this payment!' . $payment->id);
@@ -618,7 +619,7 @@ class NotificationService {
         return response()->json([
             'success' => true,
             'message' => 'Payment reminder sent successfully.',
-            'payment' => $payment->id,
+            // 'payment' => $payment->id,
             // 'res' => $res
         ]);
 
