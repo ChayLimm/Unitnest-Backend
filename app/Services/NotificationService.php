@@ -512,10 +512,9 @@ class NotificationService {
                 . "Your registration has been approved!\n"
                 . "Room: " . ($roomNumber ?? 'N/A') . "\n"
                 . "Contract started on: " . ($start_date ?? 'N/A') . "\n"
-                . "Please make your first rent payment before moving in."
                 . "\nYou can view your payment receipt here: $receiptUrl\n"
                 . "━━━━━━━━━━━━━━━━━━━━\n"
-                . "Thank you and welcome!";
+                . "Please make your first rent payment before moving in, Thank you!";
 
         if ($bot && $chatId) {
             try {
@@ -555,6 +554,7 @@ class NotificationService {
         // get unpaid payments where have active contract
         $unpaidPayments = Payment::where('landlord_id', $landlordId)
                         ->where('status', 'unpaid')
+                        // ->where('status', 'pending')
                         ->whereHas('room.currentContract')
                         ->with(['room', 'tenant'])
                         ->get();
