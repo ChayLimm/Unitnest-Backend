@@ -10,6 +10,7 @@ use App\Models\Consumption;
 use App\Services\ConsumptionService;
 use App\Services\StorageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class RoomController extends Controller
 {
@@ -53,8 +54,11 @@ class RoomController extends Controller
 
         $room = Room::create(collect($validated)->except('image')->toArray());
 
+        Log::info('Created room: ', ['room_id' => $room->id]);
+
         if ($request->hasFile('image')) {
             $result = $this->storageService->upload($request->file('image'));
+            Log::info('Uploaded room image: ', ['url' => $result['url']]);
             $room->update([
                 'image_url' => $result['url'],
             ]);
