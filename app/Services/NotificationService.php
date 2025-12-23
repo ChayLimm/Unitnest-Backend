@@ -459,6 +459,8 @@ class NotificationService {
             'identify_image_url' => $identityImageUrl,
         ]);
 
+        Log::info('Tenant created', ['tenant_id' => $tenant->id]);
+
         // check tenant exist 
         if (!$tenant || !$tenant->id) {
             throw new \Exception('Failed to create tenant');
@@ -471,6 +473,10 @@ class NotificationService {
             'start_date' => $validatedData['start_date'],
             'status' => 'active',
         ]);
+
+        Log::info('Contract created', ['contract_id' => $contract->id]);
+
+         // check contract created
         if (!$contract || !$contract->id) {
             throw new \Exception('Failed to create contract');
         }
@@ -486,9 +492,13 @@ class NotificationService {
             ],
         );
 
+        Log::info('Notification updated to APPROVED', ['notification_id' => $notification->id]);
+
         // notify 
         $bot = Telegrambot::where('user_id', $landlordId)->first();
         $this->notifyRegistrationApproval($bot, $chatId, $receiptUrl, $contract->room->room_number, $contract->start_date);
+
+        Log::info('Registration approval notification sent', ['chat_id' => $chatId]);
 
         return [
             'success' => true,
