@@ -104,7 +104,7 @@ class ReportService
             $serviceIncome = $this->getServiceIncomeQuery($landlordId, $buildingId, $month)
                 ->sum('subtotal');
 
-            $totalIncome = $paymentIncome + $serviceIncome;
+            $totalIncome = $paymentIncome;
 
             return [
                 "payment_income" => $paymentIncome,
@@ -150,7 +150,7 @@ class ReportService
                 'water_total_m3' => $waterTotal,
                 'electricity_total_kwh' => $electricityTotal,
             ],
-            'total_income' => $roomTotal + $serviceTotal,
+            'total_income' => $roomTotal,
         ];
     }
 
