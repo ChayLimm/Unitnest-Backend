@@ -586,7 +586,7 @@ class NotificationService {
             // $tenant = $payment->tenant;
             $chatId = $tenant->telegram_id;
             if (!$tenant || !$tenant->telegram_id) {
-                Log::info('Tenant not found for this payment!' . $payment->id);
+                // Log::info('Tenant not found for this payment!' . $payment->id);
                 continue;
             }
 
@@ -610,7 +610,7 @@ class NotificationService {
                     'bot_username' => $bot->username
                 ]);
             } catch (\Exception $e) {
-                Log::error('Failed to send monthly payment reminder: ' . $e->getMessage(), ['payment_id' => $payment->id]);
+                // Log::error('Failed to send monthly payment reminder: ' . $e->getMessage(), ['payment_id' => $payment->id]);
             }
 
             // $res = $this->notifyPaymentReminder($bot, $payment->tenant->telegram_id, $payment->room->room_number);
