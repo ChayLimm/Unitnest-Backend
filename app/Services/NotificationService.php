@@ -141,6 +141,7 @@ class NotificationService {
     // Payment (store info reponse from ai to payment table, notify tenant)
     //
     public function handlePaymentRequest($data){
+        Log::info('call handle payment request with data:', $data);
         // extract data
         $result = $data['result'] ?? [];
         // $landlordId = $result['landlord_id'] ?? null;
@@ -148,6 +149,14 @@ class NotificationService {
         // $meta = $result['data'] ?? null;
 
         $landlordId = Tenant::where('telegram_id', $chatId)->first()->landlord->id;
+        if (!$landlordId || !$chatId) {
+            Log::warning('payment request failed!');
+            return [
+                'success' => false,
+                'message' => 'Payment request failed: landlord id / chat id not found!',
+                'notification_id' => null,
+            ];
+        }
     
         // meta data of meter reponse
         $waterMeter = $result['water_meter'] ?? null;
@@ -192,6 +201,7 @@ class NotificationService {
         // notify tenant
         if ($notification){
             $this->notifyPaymentRequestTenant($bot, $chatId, $payload, true);
+            Log::info('Payment notification stored', ['notification_id' => $notification->id]);
             return [
                 'success' => true,
                 'message' => 'Payment request sent',
@@ -199,6 +209,7 @@ class NotificationService {
             ];
         }else{
             $this->notifyPaymentRequestTenant($bot, $chatId, $payload, false);
+            Log::error('Failed to store payment notification', ['landlord_id' => $landlordId, 'chat_id' => $chatId]);
             return [
                 'success' => false,
                 'message' => 'Payment request failed: Could not store notification.',
