@@ -194,6 +194,9 @@ class BakongService
             $payment->update([
                 'status' => 'completed',
             ]);
+            $payment->room->update([
+                'status' => "paid"
+            ]);
 
                 try{
                     $tenant = $payment->tenant;
