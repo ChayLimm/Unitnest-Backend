@@ -370,7 +370,7 @@ class NotificationService {
         $bot = $user->telegrambots;
         $telegramSerivce->sendMessage(
             $bot,
-            $payload['chat_id'],
+        $notification->chat_id,//$payload['chat_id'],
             "Your Payment have been APPROVED, please proceed the payment via receipt down bellow : $receiptUrl"
         );
         $notification->update([
