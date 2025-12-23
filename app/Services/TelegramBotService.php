@@ -59,13 +59,14 @@ class TelegramBotService
     public function setWebhook($token)
     {
         $baseUrl = env('BASE_URL');
-        // $baseUrl = config('app.url');
         $webhookUrl = "{$baseUrl}/api/agent/webhook/{$token}";
-        $botToken = $token;
+        Log::info('Setting Telegram webhook', ['url' => $webhookUrl]);
 
-        $response = Http::post("https://api.telegram.org/bot{$botToken}/setWebhook", [
+        $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", [
             'url' => $webhookUrl,
         ]);
+
+        Log::info('Telegram setWebhook response', ['response' => $response->json()]);
 
         return $response->json();
     }
