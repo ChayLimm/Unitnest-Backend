@@ -135,7 +135,7 @@ class NotificationController extends Controller
         }
 
         // check
-        if ($notification->notification_type !== NotificationType::PAYMENT) {
+        if ($notification->notification_type !== NotificationType::PAYMENT->value) {
             return response()->json(['message' => 'Only payment notifications can be rejected.'], 400);
         }
         //
@@ -177,7 +177,7 @@ class NotificationController extends Controller
             $notification->update(['read' => true]);
         }  
         // check
-        if ($notification->notification_type !== NotificationType::REGISTRATION) {
+        if ($notification->notification_type !== NotificationType::REGISTRATION->value) {
             return response()->json(['message' => 'Only registration notifications can be rejected.'], 400);
         }
         //
@@ -205,11 +205,11 @@ class NotificationController extends Controller
         //
         $validated = $request->validate([
             'room_id' => 'required|exists:rooms,id',
-            'deposit' => 'required|numeric|min:0',
+            'deposit' => 'required|numeric',
             'start_date' => 'required|date',
         ]);
         //
-        $notification = Notification::find($notificationId);
+        // $notification = Notification::find($notificationId);
         $telegramBotService = new TelegramBotService();
         $notificationService = new NotificationService($telegramBotService);
     
@@ -218,8 +218,8 @@ class NotificationController extends Controller
             $result = $notificationService->approveRegistrationRequest($notificationId, $validated);
             return response()->json([
                 'message' => 'Approval notification sent successfully.',
-                'notification' => $notification,
                 'result' => $result
+                // 'notification' => $notification,
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error approving registration notification.', 'error' => $e->getMessage()], 500);

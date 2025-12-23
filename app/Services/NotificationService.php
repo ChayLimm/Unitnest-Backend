@@ -35,7 +35,7 @@ class NotificationService {
                 'chat_id' => $chatId,
                 'read' => false,
                 'notification_type' => $type,
-                'status' => NotificationStatus::PENDING,
+                'status' => NotificationStatus::PENDING->value,
                 'payload' => $payload,
             ]);
             return $notification;
@@ -86,7 +86,7 @@ class NotificationService {
 
         // store to db
         $notification = null;
-        $notification = $this->storeNotification($landlordId, $chatId, NotificationType::REGISTRATION, $payload);
+        $notification = $this->storeNotification($landlordId, $chatId, NotificationType::REGISTRATION->value, $payload);
 
         // notify user with define bot
         if ($notification) {
@@ -188,7 +188,7 @@ class NotificationService {
         // store to db
         $notification = null;
         if ($landlordId && $chatId) {
-            $notification = $this->storeNotification($landlordId, $chatId, NotificationType::PAYMENT, $payload);
+            $notification = $this->storeNotification($landlordId, $chatId, NotificationType::PAYMENT->value, $payload);
         }
 
         // notify tenant
@@ -308,13 +308,13 @@ class NotificationService {
     public function approvePaymentRequest($notificationId){
         //validate
         $notification = Notification::find($notificationId);
-        if(!($notification->notification_type == NotificationType::PAYMENT)){
+        if(!($notification->notification_type == NotificationType::PAYMENT->value)){
             return response()->json([
                 "message"=>"Must be Payment type",
             ]);
         }
 
-        if($notification->status != NotificationStatus::PENDING ){
+        if($notification->status != NotificationStatus::PENDING->value){
             return response()->json([
                 "message"=>"Notification is already Approved or reject"
             ]);
@@ -420,10 +420,8 @@ class NotificationService {
 
         // 
         $notification = Notification::find($notificationId);
-        if (!$notification->read) {
-            $notification->update(['read' => true]);
-        }
-        if(!($notification->notification_type == NotificationType::REGISTRATION)){
+
+        if(!($notification->notification_type == NotificationType::REGISTRATION->value)){
             return response()->json([
                 "message"=>"Must be Registration type",
             ]);
@@ -488,7 +486,8 @@ class NotificationService {
 
         $notification->update([
             'status' => NotificationStatus::APPROVED,
-            'archived' => true
+            'read' => true,
+            'archived' => true,
             ],
         );
 
