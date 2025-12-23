@@ -364,7 +364,7 @@ class NotificationService {
         );
         $notification->update([
             "read" => true,
-            "status"=> NotificationStatus::APPROVED,
+            "status"=> NotificationStatus::APPROVED->value,
             "archived" => true 
         ]);
         
@@ -485,7 +485,7 @@ class NotificationService {
         $receiptUrl = $response->original['payment']['receipt_url'];
 
         $notification->update([
-            'status' => NotificationStatus::APPROVED,
+            'status' => NotificationStatus::APPROVED->value,
             'read' => true,
             'archived' => true,
             ],
