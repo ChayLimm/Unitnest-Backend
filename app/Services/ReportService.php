@@ -94,11 +94,12 @@ class ReportService
             // Optimized: Sum room price directly in DB using JOINs
             $paymentIncome = Payment::join('rooms', 'payments.room_id', '=', 'rooms.id')
                 ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
+                ->join('payment_items', 'payments.id', '=', 'payment_items.payment_id')
                 ->where('payments.status', 'completed')
                 ->where('buildings.landlord_id', $landlordId)
                 ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
                 ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
-                ->sum('rooms.price');
+                ->sum('payment_items.subtotal');
             
             // Optimized: Sum subtotal directly in DB
             $serviceIncome = $this->getServiceIncomeQuery($landlordId, $buildingId, $month)
