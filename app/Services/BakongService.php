@@ -137,7 +137,7 @@ class BakongService
             return [
                 'error' => true,
                 'message' => $e->getMessage()
-            ]; 
+            ];
         }
     }
 
@@ -193,9 +193,6 @@ class BakongService
             // Update payment status
             $payment->update([
                 'status' => 'completed',
-            ]);
-            $payment->room->update([
-                'status' => "paid"
             ]);
 
                 try{
