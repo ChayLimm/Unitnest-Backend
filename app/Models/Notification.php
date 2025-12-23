@@ -23,6 +23,7 @@ class Notification extends Model
         'status',
         'landlord_id',
         'chat_id',
+        'archived',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class Notification extends Model
         'notification_type' => 'string',
         'status' => 'string',
         'payload' => 'array',
+        'archived' => 'boolean',
     ];
 
     protected $appends = ['room_id', 'room_number'];
