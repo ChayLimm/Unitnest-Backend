@@ -569,18 +569,44 @@ class NotificationService {
         // send reminder for each unpaid payment
         foreach ($unpaidPayments as $payment) {
 
-            if (!$payment->tenant || !$payment->tenant->telegram_id) {
+            $tenant = $payment->tenant;
+            $chatId = $tenant->telegram_id;
+            if (!$tenant || !$tenant->telegram_id) {
                 Log::info('Tenant not found for this payment!' . $payment->id);
                 continue;
             }
 
-            $res = $this->notifyPaymentReminder($bot, $payment->tenant->telegram_id, $payment->room->room_number);
+            // define button for open mini app
+            $button = $this->telegramBotService->getWebAppButton('📲 Open Mini App To Scan');
+
+            // define message
+            $message = "💡 Monthly rent reminder: \n"
+                . "━━━━━━━━━━━━━━━━━━━━\n"
+                . "Tenant: {$tenant->first_name} {$tenant->last_name}\n"
+                . "Room: " . ($payment->room->room_number ?? 'N/A') . "\n"
+                . "Please  tap the button below to scan meters and submit payment request.";
+
+            try {
+                $this->telegramBotService->sendMessage($bot, $chatId, $message, $button);
+
+                Log::info('Monthly payment reminder sent', [
+                    'tenant_id' => $tenant->id,
+                    'landlord_id' => $landlordId,
+                    'chat_id' => $chatId,
+                    'bot_username' => $bot->username
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to send monthly payment reminder: ' . $e->getMessage(), ['payment_id' => $payment->id]);
+            }
+
+            // $res = $this->notifyPaymentReminder($bot, $payment->tenant->telegram_id, $payment->room->room_number);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Payment reminder sent successfully.',
-            'res' => $res
+            'payment' => $payment->id,
+            // 'res' => $res
         ]);
 
     }
