@@ -140,7 +140,7 @@ class NotificationController extends Controller
         }
         //
         $notification->update([
-            'status' => NotificationStatus::REJECTED,
+            'status' => NotificationStatus::REJECTED->value,
             'archived' => true
         ]);
 
@@ -182,7 +182,7 @@ class NotificationController extends Controller
         }
         //
         $notification->update([
-            'status' => NotificationStatus::REJECTED,
+            'status' => NotificationStatus::REJECTED->value,
             'archived' => true
         ]);
 
