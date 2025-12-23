@@ -52,6 +52,7 @@ class NotificationController extends Controller
             'payload' => 'nullable|array',
             'landlord_id' => 'nullable|exists:users,id',
             'chat_id' => 'nullable|integer',
+            'archived' => 'nullable|boolean',
         ]);
 
         $notification->update($validated);
