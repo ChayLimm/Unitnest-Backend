@@ -117,14 +117,10 @@ class NotificationService {
             $phone = $payload['phone'] ?? 'N/A';
             $email = $payload['email'] ?? 'N/A';
             $identityImageUrl = $payload['identity_image_url'] ?? null;
-            $message = "✅ We received your registration info:\n"
+            $message = "✅ We received your registration!\n"
                 . "━━━━━━━━━━━━━━━━━━━━\n"
-                . "Name: {$name}\n"
-                . "Phone: {$phone}\n"
-                . "Email: {$email}\n"
-                . ($identityImageUrl ? "ID Card: {$identityImageUrl}\n" : "")
-                . "━━━━━━━━━━━━━━━━━━━━\n"
-                . "Please wait for your landlord to approve your registration.";
+                . "Please wait for your landlord to approve your registration."
+                . "━━━━━━━━━━━━━━━━━━━━\n";
         } else {
             $message = "❌ Registration failed: Missing landlord ID or chat ID. Please try again.";
         }
