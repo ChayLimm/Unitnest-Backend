@@ -82,7 +82,7 @@ class NotificationController extends Controller
                 'room_id' => $room->id,
                 'room_number' => $room->room_number,
                 'building_id' => $room->building_id,
-                'building_name'=>$room->building->name
+                'building_name' => optional($room->building)->name ?? 'N/a'
             ]
         );
         

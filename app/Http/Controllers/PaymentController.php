@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PaymentStatus;
 use App\Models\Payment;
+use App\Models\User;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use App\Models\Consumption;
@@ -93,14 +95,73 @@ class PaymentController extends Controller
     {
         $perPage = $request->get('per_page', 15);
         $page = $request->get('page', 1);
-
+    
+        // Get paginated payments
         $payments = Payment::where('landlord_id', $landlordId)
+            ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
-
+    
+        // Check for pending receipts
         PaymentService::checkPendingReceipts($landlordId);
         
+        // Get landlord with buildings and rooms
+        $landlord = User::with(['buildings.rooms.contract.payments' => function($query) {
+            $query->whereMonth('created_at', now()->month)
+                  ->whereYear('created_at', now()->year);
+        }])->findOrFail($landlordId);
+    
+        // Initialize counters
+        $unpaid = 0;
+        $pending = 0;
+        $complete = 0;
+    
+        // Calculate room statuses
+        foreach ($landlord->buildings as $building) {
+            foreach ($building->rooms as $room) {
+                // Check if room has an active contract
+                $activeContract = $room->contracts()
+                    ->where('status', 'active')
+                    ->where('start_date', '<=', now())
+                    ->where(function($query) {
+                        $query->where('end_date', '>=', now())
+                              ->orWhereNull('end_date');
+                    })
+                    ->first();
+    
+                if (!$activeContract) {
+                    continue; // Skip available rooms
+                }
+    
+                // Get current month's payment for this contract
+                $currentMonthPayment = $room->contract->payments
+                    ->where('payment_month', now()->format('Y-m'))
+                    ->first();
+    
+                if (!$currentMonthPayment) {
+                    $unpaid++; // No payment record for current month
+                } else {
+                    switch ($currentMonthPayment->status) {
+                        case PaymentStatus::PENDING->value():
+                            $pending++;
+                            break;
+                        case PaymentStatus::COMPLETED->value():
+                            $complete++;
+                            break;
+
+                        default:
+                            $unpaid++;
+                    }
+                }
+            }
+        }
+    
         return response()->json([
             'data' => $payments->items(),
+            'stats' => [
+                'unpaid' => $unpaid,
+                'pending' => $pending,
+                'complete' => $complete,
+            ],
             'pagination' => [
                 'current_page' => $payments->currentPage(),
                 'per_page' => $payments->perPage(),
@@ -111,7 +172,6 @@ class PaymentController extends Controller
             ]
         ]);
     }
-
     public function getTenantPayments(Request $request, $tenantId)
     {
         $perPage = $request->get('per_page', 15);
