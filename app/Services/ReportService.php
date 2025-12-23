@@ -91,21 +91,23 @@ class ReportService
     private function getTotalIncome(int $landlordId, ?int $buildingId = null, ?string $month = null): array
     {
         try {
-            // Optimized: Sum room price directly in DB using JOINs
+            // Sum only payment_items that have a service_id (actual services, not room rental)
             $paymentIncome = Payment::join('rooms', 'payments.room_id', '=', 'rooms.id')
                 ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
                 ->join('payment_items', 'payments.id', '=', 'payment_items.payment_id')
                 ->where('payments.status', 'completed')
                 ->where('buildings.landlord_id', $landlordId)
+                ->whereNull('payment_items.service_id') // Room rental items have no service_id
                 ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
                 ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
                 ->sum('payment_items.subtotal');
             
-            // Optimized: Sum subtotal directly in DB
+            // Sum only service items (those with service_id)
             $serviceIncome = $this->getServiceIncomeQuery($landlordId, $buildingId, $month)
+                ->whereNotNull('payment_items.service_id') // Only actual services
                 ->sum('subtotal');
 
-            $totalIncome = $paymentIncome;
+            $totalIncome = $paymentIncome + $serviceIncome;
 
             return [
                 "payment_income" => $paymentIncome,
@@ -123,25 +125,26 @@ class ReportService
 
     private function getBreakdown(int $landlordId, ?int $buildingId = null, ?string $month = null): array
     {
-        // Reuse optimized payment income query logic
+        // Sum only room rental payment items (no service_id)
         $roomTotal = Payment::join('rooms', 'payments.room_id', '=', 'rooms.id')
             ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
+            ->join('payment_items', 'payments.id', '=', 'payment_items.payment_id')
             ->where('payments.status', 'completed')
             ->where('buildings.landlord_id', $landlordId)
+            ->whereNull('payment_items.service_id') // Only room rental items
             ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
             ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
-            ->sum('rooms.price');
+            ->sum('payment_items.subtotal');
 
-        // Optimized: Sum consumption directly
         $waterTotal = $this->getConsumptionQuery('Water', $landlordId, $buildingId, $month)
             ->sum('consumption');
 
-        // Optimized: Sum consumption directly
         $electricityTotal = $this->getConsumptionQuery('Electricity', $landlordId, $buildingId, $month)
             ->sum('consumption');
 
-        // Optimized: Sum service total directly
+        // Sum only service items (with service_id)
         $serviceTotal = $this->getServiceIncomeQuery($landlordId, $buildingId, $month)
+            ->whereNotNull('payment_items.service_id')
             ->sum('subtotal');
 
         return [
@@ -151,16 +154,15 @@ class ReportService
                 'water_total_m3' => $waterTotal,
                 'electricity_total_kwh' => $electricityTotal,
             ],
-            'total_income' => $roomTotal,
+            'total_income' => $roomTotal + $serviceTotal,
         ];
     }
 
     private function getServiceDetails(int $landlordId, ?int $buildingId = null, ?string $month = null)
     {
-        // Major Optimization: Group by service_id and aggregate in DB
-        // Avoids loading thousands of PaymentItem models into memory
         return PaymentItem::selectRaw('service_id, SUM(quantity) as total_quantity, SUM(subtotal) as total_amount')
-            ->with(['service:id,name,unit_price']) // Eager load minimal service fields
+            ->with(['service:id,name,unit_price'])
+            ->whereNotNull('service_id') // Only include items with a service_id
             ->whereHas('payment', fn($p) => 
                 $p->where('status', 'completed')
                 ->whereHas('room.building', function ($q) use ($landlordId) {
@@ -183,25 +185,27 @@ class ReportService
 
     private function getUnpaidTotals(int $landlordId, ?int $buildingId = null, ?string $month = null): array
     {
-        // Optimized: Join for unpaid room sum
+        // Unpaid room rentals (no service_id)
         $unpaidRooms = Payment::join('rooms', 'payments.room_id', '=', 'rooms.id')
+            ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
+            ->join('payment_items', 'payments.id', '=', 'payment_items.payment_id')
+            ->where('payments.status', '!=', 'completed')
+            ->where('buildings.landlord_id', $landlordId)
+            ->whereNull('payment_items.service_id') // Only room rental items
+            ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
+            ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
+            ->sum('payment_items.subtotal');
+        
+        // Unpaid services (with service_id)
+        $unpaidServices = PaymentItem::join('payments', 'payment_items.payment_id', '=', 'payments.id')
+            ->join('rooms', 'payments.room_id', '=', 'rooms.id')
             ->join('buildings', 'rooms.building_id', '=', 'buildings.id')
             ->where('payments.status', '!=', 'completed')
             ->where('buildings.landlord_id', $landlordId)
+            ->whereNotNull('payment_items.service_id') // Only service items
             ->when($buildingId, fn($q) => $q->where('rooms.building_id', $buildingId))
             ->when($month, fn($q) => $q->whereMonth('payments.created_at', $month))
-            ->sum('rooms.price');
-        
-        // Optimized: Sum unpaid services directly
-        $unpaidServices = PaymentItem::whereHas('payment', function ($q) use ($landlordId, $buildingId, $month) {
-            $q->where('status', '!=', 'completed')
-              ->whereHas('room.building', function ($q) use ($landlordId) {
-                  $q->where('landlord_id', $landlordId);
-              })
-              ->when($buildingId, fn($b) => $b->whereHas('room', fn($r) => $r->where('building_id', $buildingId)))
-              ->when($month, fn($m) => $m->whereMonth('created_at', $month));
-        })
-        ->sum('subtotal');
+            ->sum('payment_items.subtotal');
 
         return [
             'unpaid_rooms' => $unpaidRooms,
@@ -209,11 +213,6 @@ class ReportService
         ];
     }
 
-    // --- Helper Methods ---
-
-    /**
-     * Get base query for service income (Payment items).
-     */
     private function getServiceIncomeQuery(int $landlordId, ?int $buildingId, ?string $month): Builder
     {
         return PaymentItem::whereHas('payment', fn($p) => 
@@ -236,7 +235,7 @@ class ReportService
         return Consumption::whereHas('service', fn($s) => $s->where('name', $serviceName))
             ->whereHas('room.building', function ($q) use ($landlordId) {
                 $q->where('landlord_id', $landlordId);
-            })
+            })  
             ->whereHas('room.payments', fn($p) => 
                 $p->where('status', 'completed')
                 ->when($buildingId, fn($q) => $q->where('building_id', $buildingId))
