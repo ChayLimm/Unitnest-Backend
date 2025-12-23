@@ -143,10 +143,12 @@ class NotificationService {
     public function handlePaymentRequest($data){
         // extract data
         $result = $data['result'] ?? [];
-        $landlordId = $result['landlord_id'] ?? null;
+        // $landlordId = $result['landlord_id'] ?? null;
         $chatId = $result['chat_id'] ?? null; 
         // $meta = $result['data'] ?? null;
 
+        $landlordId = Tenant::where('telegram_id', $chatId)->first()->landlord->id;
+    
         // meta data of meter reponse
         $waterMeter = $result['water_meter'] ?? null;
         $waterAccuracy = $result['water_accuracy'] ?? null;

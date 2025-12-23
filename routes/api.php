@@ -153,6 +153,7 @@ Route::post('receipts/restore/{id}', [ReceiptController::class, 'restoreReceipt'
 Route::post('users/register', [UserController::class, 'register']);
 
 // Notification routes
+Route::post('handle-payment-request',[NotificationController::class,'handlePaymentRequest']);
 Route::patch('notifications/{notification}/approve-payment', [NotificationController::class, 'approvePaymentNotification']);
 Route::patch('notifications/{notification}/reject-payment', [NotificationController::class, 'rejectPaymentNotification']);
 Route::patch('notifications/{notification}/approve-registration', [NotificationController::class, 'approveRegistrationNotification']);

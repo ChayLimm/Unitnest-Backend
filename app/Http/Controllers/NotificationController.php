@@ -130,7 +130,7 @@ class NotificationController extends Controller
     // reject payment notification
     public function rejectPaymentNotification(Notification $notification, NotificationService $notificationService)
     {   
-        // check if read true / marked as read, if not
+        // check if read true / marked as read, if nota
         if (!$notification->read){
             $notification->update(['read' => true]);
         }
@@ -227,6 +227,21 @@ class NotificationController extends Controller
         }
 
         // result return to frontend with recepit for show landlord preview
+    }
+    public function handlePaymentRequest(Request $request){
+        $telegramBotService = new TelegramBotService();
+        $notificationService = new NotificationService($telegramBotService);
+
+        $res = $notificationService->handlePaymentRequest($request);
+
+        if($res){
+          return $res;
+        }else{
+            return response()->json([
+                "message"=>"Error in handle payment request service"
+            ]);
+        }
+
     }
 
     // handle send notification to tenant for payment reminder
