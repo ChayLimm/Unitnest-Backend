@@ -141,7 +141,9 @@ class NotificationService {
     // Payment (store info reponse from ai to payment table, notify tenant)
     //
     public function handlePaymentRequest($data){
-        Log::info('call handle payment request with data:', $data);
+        Log::info('call handle payment request with data:', [
+            'data' => $data
+        ]);
         // extract data
         $result = $data['result'] ?? [];
         // $landlordId = $result['landlord_id'] ?? null;
