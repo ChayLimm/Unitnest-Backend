@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Enums\NotificationType;
 use App\Enums\NotificationStatus;
+use App\Enums\NotificationType;
 use Backpack\CRUD\app\Models\Traits\CrudTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,18 +27,67 @@ class Notification extends Model
 
     protected $casts = [
         'read' => 'boolean',
-        'notification_type' => NotificationType::class,
-        'status' => NotificationStatus::class,
+        'notification_type' => 'string',
+        'status' => 'string',
         'payload' => 'array',
     ];
+
+    protected $appends = ['room_id', 'room_number'];
 
     // Relationships
     public function payment()
     {
         return $this->belongsTo(Payment::class);
     }
+
     public function landlord()
     {
         return $this->belongsTo(User::class, 'landlord_id');
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class, 'chat_id', 'telegram_id');
+    }
+
+    public function getNotificationTypeAttribute($value)
+    {
+        $enum = $this->castAttribute('notification_type', $value);
+
+        return $enum instanceof NotificationType ? $enum->value : $value;
+    }
+
+    public function getStatusAttribute($value)
+    {
+        $enum = $this->castAttribute('status', $value);
+
+        return $enum instanceof NotificationStatus ? $enum->value : $value;
+    }
+
+    // OR simpler accessor that always returns string
+    public function getNotificationTypeDisplayAttribute()
+    {
+        return $this->getRawOriginal('notification_type');
+    }
+
+    public function getStatusDisplayAttribute()
+    {
+        return $this->getRawOriginal('status');
+    }
+
+   // Add these methods to your Notification model
+    public function getRoomIdAttribute()
+    {
+        return optional(optional(optional($this->tenant)->contract)->room)->id;
+    }
+
+    public function getRoomNumberAttribute()
+    {
+        return optional(optional(optional($this->tenant)->contract)->room)->room_number;
+    }
+
+    public function getBuildingIdAttribute()
+    {
+        return optional(optional(optional($this->tenant)->contract)->room)->building_id;
     }
 }

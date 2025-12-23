@@ -68,10 +68,47 @@ class NotificationController extends Controller
     public function getNotificationsByLandlord(Request $request, $landlordId)
     {
 
-        $notifications = Notification::where('landlord_id', $landlordId)
-            ->get();
+        // $notifications = Notification::where('landlord_id', $landlordId)
+        //     ->get();
+
+        // $notifications = Notification::where('landlord_id', $landlordId)
+        //     ->with(['tenant.contract.room']) // Now Notification has tenant relationship
+        //     ->get()
+        //     ->map(function($notification) {
+        //         $notification->room_id = $notification->tenant?->contract?->room?->id;
+        //         $notification->room_number = $notification->tenant?->contract?->room?->room_number;
+        //         return $notification;
+        //     });
+
+    $notifications = Notification::where('landlord_id', $landlordId)
+    ->with(['tenant.contract.room'])
+    ->get()
+    ->map(function($notification) {
+        // Get room data safely
+        $room = optional(optional(optional($notification->tenant)->contract)->room);
         
-        return response()->json($notifications);
+        // Merge the room data into payload
+        $notification->payload = array_merge(
+            (array) $notification->payload, // Cast to array if it's object
+            [
+                'room_id' => $room->id,
+                'room_number' => $room->room_number,
+                'building_id' => $room->building_id
+            ]
+        );
+        
+        // Hide the nested relationships
+        return $notification->makeHidden(['tenant']);
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $notifications,
+        'message' => 'Notifications retrieved successfully'
+    ]);
+
+        
+        // return response()->json($notifications);
     }
 
     public function markAsRead(Notification $notification)
@@ -102,7 +139,10 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Only payment notifications can be rejected.'], 400);
         }
         //
-        $notification->update(['status' => NotificationStatus::REJECTED]);
+        $notification->update([
+            'status' => NotificationStatus::REJECTED,
+            'archived' => true
+        ]);
 
         // notify
         $chatId = $notification->chat_id;
@@ -141,7 +181,10 @@ class NotificationController extends Controller
             return response()->json(['message' => 'Only registration notifications can be rejected.'], 400);
         }
         //
-        $notification->update(['status' => NotificationStatus::REJECTED]);
+        $notification->update([
+            'status' => NotificationStatus::REJECTED,
+            'archived' => true
+        ]);
 
         // notify
         $chatId = $notification->chat_id;

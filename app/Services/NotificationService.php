@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\PaymentStatus;
 use App\Models\Consumption;
 use App\Models\Tenant;
 use App\Models\User;
@@ -312,9 +313,15 @@ class NotificationService {
                 "message"=>"Must be Payment type",
             ]);
         }
+
+        if($notification->status != NotificationStatus::PENDING ){
+            return response()->json([
+                "message"=>"Notification is already Approved or reject"
+            ]);
+        }
      
-        $payload = $notification->payload['result'];
-        //find room id
+        $payload = $notification->payload;//->payload['result'];]
+   
         $tenant = Tenant::where('telegram_id', $notification->chat_id)->first();
 
         if ($tenant && $tenant->contract) {
@@ -323,6 +330,7 @@ class NotificationService {
             $roomId = null; // or throw exception, etc.
             return response()->json([
                 "message"=>"room is not found in approving payment request"
+                
             ]);
         }
         $paymentService = new PaymentService( $roomId);
@@ -339,6 +347,8 @@ class NotificationService {
             'photo_url'=> $payload['electricity_image'],
             'type' => "electricity"
         ]);
+        
+      
         $data = [$water_consumption,$electricity_consumption];
         $response =  $paymentService->processPayment(false,false,   ...$data );
         // $rceiptUrl = $paymentData['payment']['receipt_url'];
@@ -350,16 +360,49 @@ class NotificationService {
         $telegramSerivce->sendMessage(
             $bot,
             $payload['chat_id'],
-            "Your Payment have been APPROVED, please proceed the payment via receipt download bellow : $receiptUrl"
+            "Your Payment have been APPROVED, please proceed the payment via receipt down bellow : $receiptUrl"
         );
         $notification->update([
             "read" => true,
-            "status"=> NotificationStatus::APPROVED
+            "status"=> NotificationStatus::APPROVED,
+            "archived" => true 
         ]);
         
         return $response;
 
     }
+
+    //  public function rejectPaymentRequest($notificationId){
+    //     $notification = Notification::find($notificationId);
+    //     if(!($notification->notification_type == NotificationType::PAYMENT)){
+    //         return response()->json([
+    //             "message"=>"Must be Payment type",
+    //         ]);
+    //     }
+
+    //     if($notification->status != NotificationStatus::PENDING ){
+    //         return response()->json([
+    //             "message"=>"Notification is already Approved or reject"
+    //         ]);
+    //     }
+    //     $payload = $notification->payload;
+    //     $notification->update([
+    //         "read" => true,
+    //         "status"=> NotificationStatus::REJECTED,
+    //         "archived" => true 
+    //     ]);
+
+
+    //     $telegramSerivce = new TelegramBotService();
+    //     $user = User::find($notification->landlord_id);
+    //     $bot = $user->telegrambots;
+    //     $telegramSerivce->sendMessage(
+    //         $bot,
+    //         $payload['chat_id'],
+    //         "Your Payment have been APPROVED, please proceed the payment via receipt down bellow : $receiptUrl"
+    //     );
+    //  }
+
 
 
     // protected $fillable = [
@@ -437,7 +480,11 @@ class NotificationService {
         $response = $paymentService->processPayment(false, false);
         $receiptUrl = $response->original['payment']['receipt_url'];
 
-        $notification->update(['status' => NotificationStatus::APPROVED]);
+        $notification->update([
+            'status' => NotificationStatus::APPROVED,
+            'archived' => true
+            ],
+        );
 
         // notify 
         $bot = Telegrambot::where('user_id', $landlordId)->first();
